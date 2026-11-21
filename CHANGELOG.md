@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-21
+
+The first playable version: one player picks a continent and finds its
+countries on the globe against the clock.
+
 ### Added
 
 - Project scaffold (React, TypeScript, Vite, Vitest, pnpm), MIT license, CI.
@@ -14,10 +19,10 @@ All notable changes to this project are documented here. The format follows
   continent assignment for open-ocean islands, kid-friendly name corrections,
   and an on-land anchor point per country. See `docs/data.md`.
 - Build plan in `docs/plan.md`.
-- Settings (language, seconds per question 3–60, countries per round 1–50),
-  sanitized on every read and write, stored under `geoquizz:settings`. The
-  default language is the browser's first of French, German or English,
-  else English.
+- Settings (language, seconds per question 3–60, countries per round 1–50,
+  and the continent last chosen), sanitized on every read and write, stored
+  under `geoquizz:settings`. The default language is the browser's first of
+  French, German or English, else English; the default continent is Europe.
 - `drawRound`: draws a round's countries without replacement.
 - The game reducer: one attempt per question, a tap outside the continent
   is ignored, a timeout counts as wrong, score = correct answers.
@@ -35,10 +40,28 @@ All notable changes to this project are documented here. The format follows
   fly back to the continent with the recentre button.
 - Taps: a tap picks the continent's country under the finger or pointer. A
   drag or a pinch never picks, and neither does the sea or other land.
-  Countries too small to hit at the current zoom get a 44 px ring, and a tap
-  within 26 px of a ring picks that country.
-- A preview page for the globe: pick a continent, tap countries, see the name.
+  Countries too small to hit at the current zoom get a 44 px ring. Over the
+  sea or other land a tap within 26 px of a ring picks that country; over a
+  country big enough to tap, only the ring's central 10 px do, so a ring over
+  Rome no longer takes a third of Italy.
+- Home: six continent buttons (the last one chosen is remembered), a summary
+  of the round ("10 countries · 10 s each", fewer when the continent has
+  fewer), Start, settings and the language.
+- The game: the country to find in large type, a countdown bar, the question
+  number and the score. A right tap turns the country green and moves on
+  after 1 s. A wrong tap turns it red, the answer green, and the header names
+  the country tapped; a timeout shows the answer the same way. Both move on
+  after 2.5 s, and the camera flies to the answer when it is off-screen. The
+  answer also gets a thick white outline and the header a ✓ or ✗, so green
+  and red are never the only cue. The countdown starts once the globe is
+  drawn and pauses while an answer is shown; the camera stays where the
+  player put it between questions.
+- Results: the score and one row per question (✓ or ✗, the country, what was
+  tapped or "time's up", the seconds taken), Play again and Home.
+- Settings screen: seconds per question, countries per round, language.
 - End-to-end tests in a real browser (Playwright, Chromium with software
-  WebGL), also in CI.
+  WebGL), also in CI: the globe, taps and rings, a 3-country round played with
+  a mouse and with a finger, and a round whose timer runs out.
 
-[Unreleased]: https://github.com/mrpia/geo-quizz/commits/main
+[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mrpia/geo-quizz/releases/tag/v0.1.0

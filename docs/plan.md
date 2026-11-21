@@ -37,7 +37,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 0 — Foundation**
 - [x] **Phase 1 — Domain, settings, i18n** (no globe, no screens)
 - [x] **Phase 2 — Globe view**
-- [ ] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
+- [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [ ] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (needs the owner for login and DNS)
 
 ### Phase 0 — Foundation (done)
@@ -147,11 +147,11 @@ As built, where it differs from the text below:
   `continent-*` and `picked`.
 - Bundle: globe.gl, three.js and d3-geo load on demand, 2.0 MB minified
   (556 KB gzip); the first chunk is 239 KB (76 KB gzip).
-- **Open, for the owner:** the ring rule lets a tap within 26 px of a ring
-  beat a large country underneath. At the Europe view that hands 34.5% of
+- **Settled in Phase 3:** the ring rule let a tap within 26 px of a ring
+  beat a large country underneath. At the Europe view that handed 34.5% of
   Italy's land to Vatican City or San Marino (area-weighted, measured on
   2026-11-21); Gambia's ring sits on Senegal, Luxembourg's on Belgium. The
-  plan's rule is built as written.
+  owner chose a 10 px bullseye on 2026-11-21 (Phase 3, "As built").
 
 1. `pnpm add globe.gl` (2.46.x; it brings `three`). Load it with a dynamic
    `import()` inside the component, so the home screen does not wait for
@@ -203,7 +203,55 @@ Done when: the globe shows each continent at its view, taps pick the right
 country (also tiny ones via rings), drag and pinch never pick, and the spec
 passes.
 
-### Phase 3 — Screens and game flow
+### Phase 3 — Screens and game flow (done)
+
+As built, where it differs from the text below:
+
+- **Rings over large countries** (owner's decision, 2026-11-21, the open
+  question from Phase 2): over a country that has no ring of its own, a
+  ring wins only within 10 px of its centre (`RING_BULLSEYE_PX`); over the
+  sea, other land or a ringed country it keeps its 26 px reach. The ring is
+  still drawn 44 px wide, so a tap inside its edge over Italy picks Italy.
+- **The answer is outlined, not raised** (owner's decision, 2026-11-21).
+  Screenshots at the Europe view showed the planned raise of 0.015 radii
+  cannot be seen near the view centre: from straight above, a raised
+  country hides its own walls (Poland looked flat; Spain and Norway, near
+  the rim, showed a thin dark edge). The fly-to puts the answer at the
+  centre, so the raise would rarely read. The answer now gets a thick white
+  outline with a faint glow, an SVG path over the canvas redrawn after every
+  render (`scene.onAfterRender`), projected with the camera's matrix rather
+  than `getScreenCoords` because Canada has 11,573 vertices
+  (`src/domain/outline.ts`). three-globe's wide lines (`pathStroke`) were
+  tried first: their translucent glow piles up where the border's vertices
+  crowd, and parts of the line broke up. Neither the answer nor the pick
+  rises any more; hover still does, so `ALTITUDE` is down to base and hover
+  and `MIN_ALTITUDE` is unchanged.
+- **Fly-to**: when the answer's anchor is behind the horizon or within 48 px
+  of the canvas edge (`FRAME_MARGIN_PX`), the camera flies over the anchor
+  in 800 ms at the altitude it has. GlobeView does it whenever
+  `highlight.correctId` is set, so a right answer tapped at the very edge
+  also moves the camera a little.
+- **The clock waits for the globe** (`GlobeView`'s new `onReady`): the first
+  question's countdown starts once globe.gl has drawn the globe, and taps
+  before then are ignored. Each round mounts a new globe (`GameScreen` is
+  keyed per round), so Play again waits for it too.
+- **The continent is a setting**: Home saves the continent chosen
+  (`Settings.continent`, default Europe; the owner's choice of 2026-11-21),
+  and Play again uses it. The summary counts the countries the continent
+  really has: 50 asked of South America reads "14 countries".
+- **Results** show the seconds taken on every row, one decimal in the
+  language's notation (`formatSeconds`); a timeout shows the full time next
+  to "time's up". A wrong row strikes through the country tapped.
+- **e2e**: a round's countries are fixed by scripting the draw's calls to
+  `Math.random`, armed only when the spec presses Start (`e2e/fixtures.ts`):
+  React DOM calls `Math.random` twice while it loads, and a constant
+  `Math.random` would give every three.js object the same UUID. The verdict
+  carries `data-picked`, so specs read what a tap picked without reading
+  text. `e2e/globe.spec.ts` keeps the Phase 2 checks and runs them through a
+  round. The timeout spec records the verdict, the outline and the camera
+  from inside the page on every frame: on a loaded machine, polling from
+  the test missed the 2.5 s the answer stays up.
+- Bundle: the first chunk is 252 KB (79 KB gzip), from 239 KB (76 KB).
 
 Follow math-quizz's `App.tsx` screen state machine and screen layout (header
 with a 🏠 back button, then panels).
@@ -271,7 +319,11 @@ Same setup as math-quizz (see its
    - taps, drags and pinches: the 10 px tap slop (`TAP_SLOP_PX`), and
      whether pinch-zooming drifts (globe.gl zooms towards the pointer but
      keeps the camera aimed at the centre);
-   - tiny countries: rings, and zooming in far enough to tap them.
+   - tiny countries: rings, and zooming in far enough to tap them;
+   - added in Phase 3: whether the 10 px bullseye is easy to hit with a
+     finger (a ring shows no centre mark), how long Play again waits for a
+     new globe, and the frame rate while the outline of a large answer
+     (Canada, Russia) is redrawn on every frame.
 
 Done when: https://geo-quizz.mrpia.ch serves the app over HTTPS.
 
