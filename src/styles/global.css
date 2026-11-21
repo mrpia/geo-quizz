@@ -1,0 +1,48 @@
+:root {
+  --color-bg: #f4f6fb;
+  --color-fg: #0f172a;
+  --color-fg-muted: #64748b;
+  --color-ocean: #0b3d5c;
+  --color-accent: #2a9d8f;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+  /* Tablet first: no grey flash on tap, no long-press callout over the globe. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+.placeholder {
+  padding: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f172a;
+    --color-fg: #e2e8f0;
+    --color-fg-muted: #94a3b8;
+  }
+}

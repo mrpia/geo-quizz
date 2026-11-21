@@ -1,0 +1,66 @@
+name: CI
+
+# Pull requests (Dependabot's included) and pushes to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch supersedes the run in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# A static bundle with no backend: CI only ever needs to read.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: test + build (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+
+    # One leg per LTS line in package.json's `engines`. Keep the two lists
+    # identical: `.npmrc` sets engine-strict, so a line missing from `engines`
+    # fails install, and a line missing here ships untested.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads the pnpm version from package.json's `packageManager` field.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      # Also typechecks: the build script is `tsc --noEmit && vite build`.
+      - run: pnpm build
+
+      # The committed data file must be exactly what the generator produces
+      # from the pinned source. Catches a hand edit to world.json and a script
+      # change committed without its regenerated output.
+      - name: world.json matches its generator
+        run: |
+          pnpm data
+          git diff --exit-code -- src/data/world.json
+
+  # One stable check name for branch protection, whatever the matrix holds.
+  # `always()`: a skipped required check counts as passing, so the gate runs
+  # and fails on every outcome but success.
+  verify-all:
+    name: test + build
+    needs: verify
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.verify.result }}" = success
