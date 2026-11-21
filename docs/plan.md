@@ -35,7 +35,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 ## Phases
 
 - [x] **Phase 0 — Foundation**
-- [ ] **Phase 1 — Domain, settings, i18n** (no globe, no screens)
+- [x] **Phase 1 — Domain, settings, i18n** (no globe, no screens)
 - [ ] **Phase 2 — Globe view**
 - [ ] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [ ] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (needs the owner for login and DNS)
@@ -46,7 +46,24 @@ Repo, MIT license, CI, the data pipeline (`tools/build-data.mjs` →
 `src/data/world.json`), the typed loader (`src/domain/world.ts`,
 `src/data/loadWorld.ts`), data tests, and a placeholder `App`.
 
-### Phase 1 — Domain, settings, i18n
+### Phase 1 — Domain, settings, i18n (done)
+
+As built, where it differs from the text below:
+
+- `sanitizeSettings(value, browserLanguages)` takes the browser's languages
+  as an argument so `src/domain/` never reads `navigator`; the store passes
+  `navigator.languages`. The match compares the primary language subtag
+  (`de-CH` is German, `den` is not).
+- `startGame` takes the continent's ids and the time limit along with the
+  questions: the first so a pick elsewhere is ignored, the second so a
+  timeout records the full time as `elapsedMs`.
+- The off-view islands are `BEYOND_HORIZON` in `view.ts`: ATF and HMD in
+  Africa, PCN in Oceania. The views are first estimates, not yet seen on a
+  screen.
+- The vertical field of view (50°) was read from the published globe.gl
+  2.46.2 dependency sources, not from an installed package; Phase 2 checks it.
+- `translate`, `countryName` and `useI18n` throw where math-quizz falls back
+  (unknown key, placeholder without a value, no provider).
 
 Pure TypeScript, all of it testable in Vitest. Write each test first.
 
@@ -96,7 +113,10 @@ Done when: everything above has tests; `pnpm test` and `pnpm build` are green.
 
 1. `pnpm add globe.gl` (2.46.x; it brings `three`). Load it with a dynamic
    `import()` inside the component, so the home screen does not wait for
-   three.js.
+   three.js. **Then check `GLOBE_VFOV_DEG` in `src/domain/view.ts`**: Phase 1
+   pinned it at 50 from the published sources, before the package was
+   installed. Assert it against the real globe's `camera().fov`, in the e2e
+   spec (item 9) since jsdom has no WebGL.
 2. `src/components/GlobeView.tsx` wraps the imperative API: create in an
    effect, call `_destructor()` in its cleanup (StrictMode mounts twice).
    Props: the world, the continent, highlight state (picked id, correct id,
@@ -131,7 +151,11 @@ Done when: everything above has tests; `pnpm test` and `pnpm build` are green.
    One spec: the globe renders and `screenPoint` returns a point on the canvas
    for a country.
 10. Ask the owner to try it on the tablet: 99,613 vertices at 1:50m should be
-    fine on WebGL, but this is where it would show.
+    fine on WebGL, but this is where it would show. Look at each continent's
+    starting view (`CONTINENT_VIEWS`) at the same time: they were set for a
+    landscape globe area of about 1180 × 700 px and never seen. If one
+    moves, `src/__tests__/view.test.ts` says which countries to add to or
+    drop from `BEYOND_HORIZON`.
 
 Done when: the globe shows each continent at its view, taps pick the right
 country (also tiny ones via rings), drag and pinch never pick, and the spec
