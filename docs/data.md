@@ -95,7 +95,9 @@ inaccessibility of the largest polygon instead
 - **Remote islands sit far from their continent.** Heard Island and the French
   Southern Lands are asked in Africa, Pitcairn in Oceania, South Georgia in
   South America. Some are off-screen at the continent's starting view; the
-  player rotates to reach them.
+  player rotates to reach them. Those behind the horizon (Heard Island, the
+  French Southern Lands and Pitcairn) are listed in `BEYOND_HORIZON` in
+  `src/domain/view.ts`, and a test keeps that list in step with the views.
 
 ## Output format
 
