@@ -28,6 +28,26 @@ test('renders the globe with the camera the tap-ring rule assumes', async ({ pag
   expect(view.altitude).toBeCloseTo(CONTINENT_VIEWS.europe.altitude, 3);
 });
 
+test('asks the first country only once the map is drawn', async ({ page }) => {
+  await seed(page, ['FRA']);
+  // Watched from inside the page: what the globe said at the moment the
+  // country's name entered the DOM. "ready" means every shape was drawn.
+  await page.addInitScript(() => {
+    const seen = { stateWhenAsked: '' };
+    (window as unknown as { __asked: typeof seen }).__asked = seen;
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector('[data-testid="game-target"]')) return;
+      seen.stateWhenAsked = document.querySelector<HTMLElement>('[data-testid="globe"]')?.dataset.state ?? 'none';
+      observer.disconnect();
+    });
+    observer.observe(document, { childList: true, subtree: true });
+  });
+  await startRound(page);
+  await expect(target(page)).toHaveAttribute('data-id', 'FRA');
+  const asked = await page.evaluate(() => (window as unknown as { __asked: { stateWhenAsked: string } }).__asked);
+  expect(asked.stateWhenAsked).toBe('ready');
+});
+
 test('screenPoint returns a point on the canvas for a country', async ({ page }) => {
   await seed(page, ['FRA']);
   await startRound(page);

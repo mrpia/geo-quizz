@@ -231,10 +231,17 @@ As built, where it differs from the text below:
   in 800 ms at the altitude it has. GlobeView does it whenever
   `highlight.correctId` is set, so a right answer tapped at the very edge
   also moves the camera a little.
-- **The clock waits for the globe** (`GlobeView`'s new `onReady`): the first
-  question's countdown starts once globe.gl has drawn the globe, and taps
-  before then are ignored. Each round mounts a new globe (`GameScreen` is
-  keyed per round), so Play again waits for it too.
+- **The first question waits for the map** (`GlobeView`'s new `onReady`):
+  the first country is shown, and its countdown starts, only once the map is
+  drawn; taps before then are ignored. globe.gl's `onGlobeReady` only means
+  the sphere is up, and the 1,620 country shapes are built in a later update,
+  so GlobeView counts the built shapes in the scene and reports ready one
+  frame after all of them are there (`src/components/globeShapes.ts`, which
+  leans on three-globe 2.45.6 internals). Until that was fixed, after the
+  merge on 2026-11-21, the first country's name showed 140 to 350 ms after
+  Start, over "Loading the map…", while the map took 3.7 to 9.3 s under
+  SwiftShader. Each round mounts a new globe (`GameScreen` is keyed per
+  round), so Play again waits for it too.
 - **The continent is a setting**: Home saves the continent chosen
   (`Settings.continent`, default Europe; the owner's choice of 2026-11-21),
   and Play again uses it. The summary counts the countries the continent

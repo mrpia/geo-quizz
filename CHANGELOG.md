@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The first country of a round was named while the map was still loading.
+  It now appears, and its countdown starts, only once every country is drawn
+  on the globe.
+
 ## [0.1.0] - 2026-11-21
 
 The first playable version: one player picks a continent and finds its

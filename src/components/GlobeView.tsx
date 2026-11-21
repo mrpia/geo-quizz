@@ -10,6 +10,7 @@ import { CONTINENT_VIEWS, isInFrame, isWithinHorizon, viewOver } from '../domain
 import { countriesOf, type Continent, type Country, type World } from '../domain/world';
 import { useI18n } from '../i18n/I18nContext';
 import type { GeoQuizzHook } from './geoQuizzHook';
+import { countDrawnShapes, shapeCount } from './globeShapes';
 import {
   ALTITUDE,
   BORDER_COLOR,
@@ -49,7 +50,10 @@ export type GlobeViewProps = {
   highlight?: GlobeHighlight;
   /** A tap on a country of `continent`. Taps anywhere else, drags and pinches call nothing. */
   onPick: (id: string) => void;
-  /** Called once, when the globe is drawn: the game starts its clock then, not while it loads. */
+  /**
+   * Called once, when the map is drawn: the sphere and every country's shape
+   * on screen. The game asks its first country then, not while it loads.
+   */
   onReady?: () => void;
   /** Change it to fly the camera back to the continent's view. */
   resetToken?: number;
@@ -106,7 +110,12 @@ export const GlobeView = ({
   const hostRef = useRef<HTMLDivElement>(null);
   const [globe, setGlobe] = useState<GlobeInstance | null>(null);
   const [pick, setPick] = useState<typeof Pick | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [failed, setFailed] = useState(false);
+  // Ready means drawn: the sphere is up (globe.gl's onGlobeReady) and every
+  // country's shape has been on screen for a frame (see globeShapes.ts).
+  const [sphereShown, setSphereShown] = useState(false);
+  const [shapesDrawn, setShapesDrawn] = useState(false);
+  const status = failed ? 'error' : sphereShown && shapesDrawn ? 'ready' : 'loading';
   const [altitude, setAltitude] = useState(CONTINENT_VIEWS[continent].altitude);
   const [height, setHeight] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -185,7 +194,7 @@ export const GlobeView = ({
             const hoverable = id && pointerType.current === 'mouse' && latest.current.inPlay.has(id);
             setHoverId(hoverable ? id : null);
           })
-          .onGlobeReady(() => setStatus('ready'));
+          .onGlobeReady(() => setSphereShown(true));
         const frame = frameRef.current;
         if (frame && frame.clientWidth > 0 && frame.clientHeight > 0) {
           g.width(frame.clientWidth).height(frame.clientHeight);
@@ -207,7 +216,7 @@ export const GlobeView = ({
       .catch((error: unknown) => {
         if (cancelled) return;
         console.error('GlobeView: the globe could not be set up', error);
-        setStatus('error');
+        setFailed(true);
       });
     return () => {
       cancelled = true;
@@ -223,6 +232,26 @@ export const GlobeView = ({
   useEffect(() => {
     globe?.polygonsData(polygons);
   }, [globe, polygons]);
+
+  // globe.gl builds the shapes in one of its later updates, all at once. The
+  // map counts as drawn on the first frame after one that had all of them:
+  // globe.gl renders on every frame, so by then they have been on screen.
+  useEffect(() => {
+    if (!globe || shapesDrawn) return;
+    const expected = shapeCount(world.countries);
+    let built = false;
+    let frame = 0;
+    const check = () => {
+      if (built) {
+        setShapesDrawn(true);
+        return;
+      }
+      built = countDrawnShapes(globe.scene()) >= expected;
+      frame = requestAnimationFrame(check);
+    };
+    frame = requestAnimationFrame(check);
+    return () => cancelAnimationFrame(frame);
+  }, [globe, world, shapesDrawn]);
 
   useEffect(() => {
     if (!globe) return;
