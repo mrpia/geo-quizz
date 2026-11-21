@@ -4,8 +4,16 @@
   --color-fg-muted: #64748b;
   --color-ocean: #0b3d5c;
   --color-accent: #2a9d8f;
+  /* The globe's answer and wrong-pick colours (RIGHT_COLOR and WRONG_COLOR
+     in globeLook.ts). Too light for text on a light background, so text
+     uses the darker inks. */
   --color-success: #22c55e;
   --color-error: #ef4444;
+  --color-success-ink: #15803d;
+  --color-error-ink: #b91c1c;
+  --color-card-bg: #ffffff;
+  --color-chip-border: #cbd5e1;
+  --color-track: #e2e8f0;
 }
 
 *,
@@ -40,5 +48,10 @@ button {
     --color-bg: #0f172a;
     --color-fg: #e2e8f0;
     --color-fg-muted: #94a3b8;
+    --color-success-ink: #4ade80;
+    --color-error-ink: #f87171;
+    --color-card-bg: #1e293b;
+    --color-chip-border: #334155;
+    --color-track: #334155;
   }
 }

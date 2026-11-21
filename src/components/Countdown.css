@@ -1,0 +1,14 @@
+.countdown {
+  height: 8px;
+  background: var(--color-track);
+  overflow: hidden;
+}
+
+/* Scaled rather than resized: a transform does not lay the page out again
+   on every frame. */
+.countdown__bar {
+  height: 100%;
+  background: var(--color-accent);
+  transform: scaleX(var(--remaining, 1));
+  transform-origin: left center;
+}

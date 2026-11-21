@@ -1,0 +1,78 @@
+/* The layout the Home, Results and Settings screens share (math-quizz's:
+   a header, then panels in one column). */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.screen__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.screen__title {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.screen__round-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 2px solid var(--color-chip-border);
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  color: var(--color-fg);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.screen__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.screen__panel-title {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.screen__primary-btn,
+.screen__secondary-btn {
+  min-height: 3.5rem;
+  padding: 0.9rem;
+  border-radius: 18px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.screen__primary-btn {
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(42, 157, 143, 0.35);
+}
+
+.screen__secondary-btn {
+  border: 2px solid var(--color-chip-border);
+  background: var(--color-card-bg);
+  color: var(--color-fg);
+}
