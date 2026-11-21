@@ -23,6 +23,14 @@ from it unless the owner has moved the idea into a phase.
   publishes to the live site, so only with the owner's go-ahead. `vite
   preview` does not apply `firebase.json`; check headers with `curl -I`.
 
+## Releases
+
+A release bumps `package.json`'s version, adds a `CHANGELOG.md` section and
+puts a note for the player at the top of `src/domain/releaseNotes.ts` (in all
+three languages, written to a child), in one commit.
+`src/__tests__/releaseNotes.test.ts` fails when they disagree. Tag `vX.Y.Z`
+on the merge commit.
+
 ## Git and GitHub
 
 The repo belongs to the personal account `mrpia`, and commits use the

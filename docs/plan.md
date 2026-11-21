@@ -38,7 +38,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 1 — Domain, settings, i18n** (no globe, no screens)
 - [x] **Phase 2 — Globe view**
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
-- [ ] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (needs the owner for login and DNS)
+- [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 
 ### Phase 0 — Foundation (done)
 
@@ -315,7 +315,45 @@ with a 🏠 back button, then panels).
 Done when: a full round can be played with touch and with a mouse, and both
 suites pass in CI.
 
-### Phase 4 — Deploy to geo-quizz.mrpia.ch
+### Phase 4 — Deploy to geo-quizz.mrpia.ch (done)
+
+As built, where it differs from the text below:
+
+- **Site id `geo-quizz-mrpia`.** Firebase refused `geo-quizz` on
+  2026-11-21: "`geo-quizz` is reserved by another project". The project
+  `modern-ally-102412` now has four sites: its default one (math-quizz),
+  `arena-maze`, `arena-race` and `geo-quizz-mrpia`. The CNAME already at the
+  registrar, `geo-quizz.mrpia.ch → geo-quizz.web.app.`, named the other
+  project's site; the custom domain step replaced it with the records the
+  console showed for `geo-quizz-mrpia`.
+- **No SPA rewrite** (owner's decision, 2026-11-21). The app has no routes,
+  and its build uses relative asset paths (`base: './'`). On math-quizz, which
+  has the same pair, `/a/b` serves index.html whose `./assets/` script
+  resolves to `/a/assets/…`, which the rewrite answers with index.html as
+  `text/html`, so the page stays blank; and a missing `/assets/x.js` gets a
+  200 with index.html and the one-year immutable header. Without the
+  rewrite, an unknown path gets Firebase's 404.
+- **About screen**: an ℹ️ button next to ⚙️ on Home opens it, as in
+  math-quizz (owner's choice). Beyond the version, the source link and "Made
+  with Natural Earth", the owner asked for math-quizz's other panels: the
+  credit line to mrpia.ch, the coffee link addressed to the parents, "your
+  data", and what's new per version. "Your data" says what geo-quizz really
+  does: it keeps the settings in localStorage and does not save answers or
+  scores. `src/__tests__/privacy.test.ts` holds the code to that (storage
+  only in `settingsStore.ts`, `fetch` only in `loadWorld.ts`). It scans
+  `src/` only, not the libraries.
+- **What's new** comes from `src/domain/releaseNotes.ts`, written to a child
+  in each language. `src/__tests__/releaseNotes.test.ts` holds its first
+  entry to `package.json`'s version and to a `CHANGELOG.md` section; CLAUDE.md
+  describes the release step.
+- `src/config/site.ts` also has `AUTHOR_URL`, `AUTHOR_LABEL` and
+  `SUPPORT_URL`, for the extra panels. Nothing in the app reads `SITE_URL`
+  yet; `siteConfig.test.ts` uses its host, like the others, to fail on a
+  hard-coded copy under `src/`.
+- **0.2.0** ships with this phase (owner's decision): the About screen, plus
+  the map-wait fix and the restyle that were unreleased on `main`.
+- Bundle: the first chunk is 263 KB (83 KB gzip), from 254 KB (80 KB) on
+  `main`, for the strings and release notes in three languages.
 
 Same setup as math-quizz (see its
 `docs/superpowers/specs/2026-06-13-firebase-hosting-design.md`).

@@ -11,7 +11,7 @@ const settings: Settings = {
 };
 
 const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = settings.language) => {
-  const handlers = { onChange: vi.fn(), onStart: vi.fn(), onOpenSettings: vi.fn() };
+  const handlers = { onChange: vi.fn(), onStart: vi.fn(), onOpenSettings: vi.fn(), onOpenAbout: vi.fn() };
   const all = { settings, roundSize: 10, ...handlers, ...props };
   renderWithLanguage(<HomeScreen {...all} />, lang);
   return handlers;
@@ -55,6 +55,14 @@ describe('HomeScreen', () => {
     expect(onStart).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'settings' }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+
+  it('opens the About screen with ℹ️', () => {
+    const { onOpenAbout } = setup({}, 'fr');
+    const about = screen.getByRole('button', { name: 'à propos' });
+    expect(about).toHaveTextContent('ℹ️');
+    fireEvent.click(about);
+    expect(onOpenAbout).toHaveBeenCalledOnce();
   });
 
   it('switches the language at once', () => {

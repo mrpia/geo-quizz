@@ -173,6 +173,17 @@ describe('App: settings', () => {
   });
 });
 
+describe('App: about', () => {
+  it('shows the version of this build, and goes back home', async () => {
+    stored({ language: 'en' });
+    await open();
+    click('open-about');
+    expect(screen.getByTestId('about-version')).toHaveTextContent(`version ${__APP_VERSION__}`);
+    click('about-back');
+    expect(screen.getByTestId('start-game')).toBeInTheDocument();
+  });
+});
+
 describe('App: the map', () => {
   it('waits for the map, then starts the round', async () => {
     let resolve: (value: typeof world) => void = () => {};

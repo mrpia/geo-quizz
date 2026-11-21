@@ -1,3 +1,9 @@
+/* ℹ️ and ⚙️, side by side at the end of the header. */
+.home__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .home__continents {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
