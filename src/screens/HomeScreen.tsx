@@ -18,9 +18,10 @@ type Props = {
   onChange: (next: Settings) => void;
   onStart: () => void;
   onOpenSettings: () => void;
+  onOpenAbout: () => void;
 };
 
-export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSettings }: Props) => {
+export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSettings, onOpenAbout }: Props) => {
   const { t, lang } = useI18n();
   const titleId = useId();
   const seconds = settings.secondsPerQuestion;
@@ -29,15 +30,26 @@ export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSetti
     <div className="screen home">
       <header className="screen__header">
         <h1 className="screen__title">Geo Quizz</h1>
-        <button
-          type="button"
-          className="screen__round-btn"
-          data-testid="open-settings"
-          aria-label={t('home.settingsAria')}
-          onClick={onOpenSettings}
-        >
-          ⚙️
-        </button>
+        <div className="home__actions">
+          <button
+            type="button"
+            className="screen__round-btn"
+            data-testid="open-about"
+            aria-label={t('home.aboutAria')}
+            onClick={onOpenAbout}
+          >
+            ℹ️
+          </button>
+          <button
+            type="button"
+            className="screen__round-btn"
+            data-testid="open-settings"
+            aria-label={t('home.settingsAria')}
+            onClick={onOpenSettings}
+          >
+            ⚙️
+          </button>
+        </div>
       </header>
       <LanguageToggle value={settings.language} onChange={(language) => onChange({ ...settings, language })} />
       <section className="screen__panel">

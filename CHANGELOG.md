@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
+The first version online, at https://geo-quizz.mrpia.ch.
+
+### Added
+
+- An About screen, opened with ℹ️ on Home: the version, a credit line to
+  mrpia.ch, a "buy me a coffee" link addressed to the parents, what the app
+  keeps (the settings, in this browser) and what it does not (answers,
+  scores, anything sent over the network), "Made with Natural Earth", a link
+  to the source code, and what's new in each version. A test holds the
+  "your data" promise to the code: storage only in the settings store, the
+  network only to download the map.
+- `src/config/site.ts` holds every URL that ties the build to this
+  deployment and its author; a test fails if another file under `src/`
+  hard-codes one.
+- Firebase Hosting: `firebase.json` (site `geo-quizz-mrpia` in project
+  `modern-ally-102412`), `.firebaserc`, and `pnpm ship` to build and deploy.
+  Hashed files under `/assets/`, the map data included, are cached for a
+  year; `/` and `/index.html` are revalidated on every load. There is no
+  SPA rewrite: the app has no routes, so an unknown path gets a 404.
+
 ### Changed
 
 - The continent's countries are shades of pink, other land stays grey.
@@ -79,5 +101,6 @@ countries on the globe against the clock.
   WebGL), also in CI: the globe, taps and rings, a 3-country round played with
   a mouse and with a finger, and a round whose timer runs out.
 
-[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mrpia/geo-quizz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mrpia/geo-quizz/releases/tag/v0.1.0

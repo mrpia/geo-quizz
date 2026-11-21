@@ -4,6 +4,7 @@ import type { Answer } from './domain/game';
 import type { Settings } from './domain/settings';
 import { countriesOf, type World } from './domain/world';
 import { LanguageProvider, useI18n } from './i18n/I18nContext';
+import { AboutScreen } from './screens/AboutScreen';
 import { GameScreen } from './screens/GameScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
@@ -11,7 +12,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { loadSettings, saveSettings } from './storage/settingsStore';
 import './App.css';
 
-type Screen = 'home' | 'game' | 'results' | 'settings';
+type Screen = 'home' | 'game' | 'results' | 'settings' | 'about';
 
 /**
  * The screen state machine, as in math-quizz: one screen at a time, chosen
@@ -54,6 +55,7 @@ export const App = () => {
             onChange={save}
             onStart={play}
             onOpenSettings={() => setScreen('settings')}
+            onOpenAbout={() => setScreen('about')}
           />
         )}
         {screen === 'game' &&
@@ -77,6 +79,7 @@ export const App = () => {
           <ResultsScreen world={world} answers={answers} onReplay={play} onHome={home} />
         )}
         {screen === 'settings' && <SettingsScreen settings={settings} onSave={save} onBack={home} />}
+        {screen === 'about' && <AboutScreen version={__APP_VERSION__} onBack={home} />}
       </div>
     </LanguageProvider>
   );
