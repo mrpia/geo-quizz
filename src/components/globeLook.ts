@@ -34,24 +34,34 @@ export const MAP_PALETTE: readonly string[] = [
 
 /**
  * Polygon altitudes in globe radii (globe.gl's unit). The base is low, so
- * borders line up with the sphere when seen at a slant. A wrong pick rises a
- * little, the right answer more: Phase 3 must never tell them apart by
- * colour alone, so height has to differ too. All of them stay below
- * GlobeView's closest zoom (0.02), or a camera zoomed right in over the
- * answer would end up inside it.
+ * borders line up with the sphere when seen at a slant; a country under the
+ * mouse rises a little. The answer and the pick stay at the base: a raise
+ * cannot be seen from straight above, where the camera puts the answer, so
+ * the answer is outlined instead (the owner's call, 2026-11-21; see
+ * `src/domain/outline.ts`). Every altitude stays below GlobeView's closest
+ * zoom (0.02), or a camera zoomed right in would end up inside a country.
  */
 export const ALTITUDE = {
   base: 0.005,
   hover: 0.01,
-  picked: 0.01,
-  correct: 0.015,
 } as const;
 
-/** What the game wants shown after a tap (Phase 3 sets it; Phase 2 never does). */
+/**
+ * The answer, and a wrong pick. The same values as `--color-success` and
+ * `--color-error` in global.css. Never the only cue: the answer is also
+ * outlined, and the header and the results say ✓ or ✗ (plan, Phase 3).
+ */
+export const RIGHT_COLOR = '#22c55e';
+export const WRONG_COLOR = '#ef4444';
+
+/** What the game shows after a tap or a timeout. */
 export type GlobeHighlight = {
   /** The country the player tapped, drawn in `pickedColor`. */
   pickedId: string | null;
-  /** The answer, drawn in `correctColor` and raised highest. Wins when it is also the pick. */
+  /**
+   * The answer, drawn in `correctColor` and outlined, and flown to when it is
+   * out of frame. Wins when it is also the pick.
+   */
   correctId: string | null;
   pickedColor: string;
   correctColor: string;
@@ -85,8 +95,7 @@ export const polygonAltitudeOf = (
   hoverId: string | null,
   highlight: GlobeHighlight,
 ): number => {
-  if (country.id === highlight.correctId) return ALTITUDE.correct;
-  if (country.id === highlight.pickedId) return ALTITUDE.picked;
+  if (country.id === highlight.correctId || country.id === highlight.pickedId) return ALTITUDE.base;
   if (inPlay && country.id === hoverId) return ALTITUDE.hover;
   return ALTITUDE.base;
 };
@@ -96,8 +105,8 @@ export const polygonAltitudeOf = (
  * geometry only when this is truthy (`hasSide`, three-globe 2.45.6). Walls
  * under every edge of all 1,620 shapes made a SwiftShader frame seven times
  * slower (2,280 ms against 319 ms, measured 2026-11-21), and at the base
- * altitude they are too low to see. A country that rises gets its walls
- * rebuilt, one country at a time.
+ * altitude they are too low to see. A country that rises under the mouse
+ * gets its walls rebuilt, one country at a time.
  */
 export const sideColorOf = (altitude: number): string =>
   altitude > ALTITUDE.base ? SIDE_COLOR : '';

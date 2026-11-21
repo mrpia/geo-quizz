@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobeInstance } from 'globe.gl';
 import { createTapTracker } from '../domain/gesture';
 import type * as Pick from '../domain/pick';
+import { combine, outlinePath, prepareOutline } from '../domain/outline';
 import { ringedIds } from '../domain/rings';
-import { CONTINENT_VIEWS, isWithinHorizon } from '../domain/view';
+import { CONTINENT_VIEWS, isInFrame, isWithinHorizon, viewOver } from '../domain/view';
 import { countriesOf, type Continent, type Country, type World } from '../domain/world';
 import { useI18n } from '../i18n/I18nContext';
 import type { GeoQuizzHook } from './geoQuizzHook';
@@ -32,7 +33,7 @@ import './GlobeView.css';
 export const MIN_ALTITUDE = 0.02;
 /** Farthest zoom: the whole globe, about 300 px across on a 700 px globe area. */
 export const MAX_ALTITUDE = 4;
-/** How long the camera takes to fly back to the continent. */
+/** How long the camera takes to fly to a view: the continent's, or the answer's. */
 const FLY_MS = 800;
 /** How long a country takes to rise or sink. */
 const RAISE_MS = 250;
@@ -40,10 +41,16 @@ const RAISE_MS = 250;
 export type GlobeViewProps = {
   world: World;
   continent: Continent;
-  /** What to show after a tap. Nothing by default. */
+  /**
+   * What to show after a tap or a timeout. Nothing by default. The answer
+   * (`correctId`) is outlined, and the camera flies over it, at the altitude
+   * it has, when it is out of frame (plan, Phase 3).
+   */
   highlight?: GlobeHighlight;
   /** A tap on a country of `continent`. Taps anywhere else, drags and pinches call nothing. */
   onPick: (id: string) => void;
+  /** Called once, when the globe is drawn: the game starts its clock then, not while it loads. */
+  onReady?: () => void;
   /** Change it to fly the camera back to the continent's view. */
   resetToken?: number;
 };
@@ -51,6 +58,15 @@ export type GlobeViewProps = {
 type PolygonDatum = { country: Country };
 type RingDatum = { id: string; lat: number; lng: number };
 type Style = { cap: string; side: string; altitude: number };
+
+/** What the outline reads from globe.gl's three.js camera, after each render. */
+type CameraMatrices = {
+  projectionMatrix: { elements: ArrayLike<number> };
+  matrixWorldInverse: { elements: ArrayLike<number> };
+  position: { x: number; y: number; z: number };
+};
+/** three.js calls a scene's `onAfterRender` at the end of every `render()`. */
+type RenderHook = { onAfterRender: () => void };
 
 const countryOf = (d: object): Country => (d as PolygonDatum).country;
 
@@ -82,6 +98,7 @@ export const GlobeView = ({
   continent,
   highlight = NO_HIGHLIGHT,
   onPick,
+  onReady,
   resetToken = 0,
 }: GlobeViewProps) => {
   const { t } = useI18n();
@@ -131,9 +148,9 @@ export const GlobeView = ({
   }, [countries, ringKey]);
 
   // What the long-lived listeners need, always current.
-  const latest = useRef({ onPick, locate, rings, inPlay });
+  const latest = useRef({ onPick, onReady, locate, rings, inPlay });
   useEffect(() => {
-    latest.current = { onPick, locate, rings, inPlay };
+    latest.current = { onPick, onReady, locate, rings, inPlay };
   });
   const pointerType = useRef('mouse');
 
@@ -200,6 +217,10 @@ export const GlobeView = ({
   }, []);
 
   useEffect(() => {
+    if (status === 'ready') latest.current.onReady?.();
+  }, [status]);
+
+  useEffect(() => {
     globe?.polygonsData(polygons);
   }, [globe, polygons]);
 
@@ -228,6 +249,49 @@ export const GlobeView = ({
     placed.current = globe;
     globe.pointOfView(CONTINENT_VIEWS[continent], first ? 0 : FLY_MS);
   }, [globe, continent, resetToken]);
+
+  // The answer, when it is out of frame: the camera flies over it and keeps
+  // its altitude. Declared after the continent's view, so a highlight given
+  // at mount starts from that view.
+  useEffect(() => {
+    if (!globe || !correctId) return;
+    const country = world.byId.get(correctId);
+    if (!country) throw new Error(`GlobeView: no country ${JSON.stringify(correctId)} to show`);
+    const anchor = country.properties.anchor;
+    const view = globe.pointOfView();
+    const point = isWithinHorizon(view, anchor)
+      ? globe.getScreenCoords(anchor[1], anchor[0], ALTITUDE.base)
+      : null;
+    if (!isInFrame(point, { width: globe.width(), height: globe.height() })) {
+      globe.pointOfView(viewOver(anchor, view), FLY_MS);
+    }
+  }, [globe, world, correctId]);
+
+  // The answer's outline, an SVG path over the canvas, redrawn after every
+  // frame globe.gl renders so it moves with the globe (src/domain/outline.ts).
+  const outlineRef = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const group = outlineRef.current;
+    if (!globe || !correctId || !group) return;
+    const country = world.byId.get(correctId);
+    if (!country) throw new Error(`GlobeView: no country ${JSON.stringify(correctId)} to outline`);
+    const shape = prepareOutline(country.geometry, globe.getGlobeRadius() * (1 + ALTITUDE.base));
+    const paths = [...group.querySelectorAll('path')];
+    const camera = globe.camera() as unknown as CameraMatrices;
+    const scene = globe.scene() as unknown as RenderHook;
+    const draw = () => {
+      const { x, y, z } = camera.position;
+      const matrix = combine(camera.projectionMatrix.elements, camera.matrixWorldInverse.elements);
+      const d = outlinePath(shape, { matrix, position: [x, y, z] }, globe.width(), globe.height());
+      for (const path of paths) path.setAttribute('d', d);
+    };
+    const previous = scene.onAfterRender;
+    scene.onAfterRender = draw;
+    draw();
+    return () => {
+      scene.onAfterRender = previous;
+    };
+  }, [globe, world, correctId]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -331,6 +395,18 @@ export const GlobeView = ({
       data-hover={hoverId ? '' : undefined}
     >
       <div ref={hostRef} className="globe__host" />
+      {globe && correctId && (
+        // Three strokes of one path: two faint, wide ones for the glow, and
+        // the line. SVG blends a stroke once, so the glow stays faint where
+        // the border's vertices crowd (three.js wide lines overlap there).
+        <svg className="globe__outline" data-testid="globe-outline" data-id={correctId} aria-hidden="true">
+          <g ref={outlineRef}>
+            <path className="globe__outline-glow globe__outline-glow--wide" />
+            <path className="globe__outline-glow" />
+            <path className="globe__outline-line" />
+          </g>
+        </svg>
+      )}
       {status === 'loading' && <p className="globe__status">{t('common.loading')}</p>}
       {status === 'error' && (
         <p className="globe__status" role="alert">

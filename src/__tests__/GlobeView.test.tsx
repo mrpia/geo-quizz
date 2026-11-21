@@ -2,10 +2,16 @@ import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import raw from '../data/world.json?raw';
 import { parseWorld, type WorldTopology } from '../domain/world';
-import { CONTINENT_VIEWS, type View } from '../domain/view';
+import { CONTINENT_VIEWS, FRAME_MARGIN_PX, isWithinHorizon, viewOver, type View } from '../domain/view';
 import { LanguageProvider } from '../i18n/I18nContext';
 import { GlobeView, MAX_ALTITUDE, MIN_ALTITUDE, type GlobeViewProps } from '../components/GlobeView';
-import { ALTITUDE, MAP_PALETTE, OTHER_LAND_COLOR, type GlobeHighlight } from '../components/globeLook';
+import {
+  ALTITUDE,
+  MAP_PALETTE,
+  NO_HIGHLIGHT,
+  OTHER_LAND_COLOR,
+  type GlobeHighlight,
+} from '../components/globeLook';
 
 /**
  * globe.gl needs WebGL, which jsdom does not have. This fake records what
@@ -24,9 +30,12 @@ type FakeGlobe = {
   canvas: HTMLCanvasElement;
   /** Set to false to make the next taps land off the globe. */
   surface: boolean;
+  /** What GlobeView hooks into three.js's render: `onAfterRender`. */
+  scene: { onAfterRender?: () => void };
 };
 
 const fake = vi.hoisted(() => ({ globes: [] as unknown[], failCreate: false }));
+const IDENTITY = vi.hoisted(() => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 
 const toScreen = (lng: number, lat: number) => ({ x: (lng + 30) * 10, y: (75 - lat) * 10 });
 
@@ -45,6 +54,7 @@ vi.mock('globe.gl', () => {
       destroyed: false,
       canvas,
       surface: true,
+      scene: {},
     };
     fake.globes.push(state);
     const api: Record<string, unknown> = {
@@ -56,7 +66,16 @@ vi.mock('globe.gl', () => {
       },
       renderer: () => ({ domElement: canvas }),
       controls: () => state.controls,
-      camera: () => ({ fov: 50 }),
+      // Identity matrices, seen from far out on +z: enough for the outline
+      // to know which side faces the camera. The outline's geometry is
+      // tested in outline.test.ts.
+      camera: () => ({
+        fov: 50,
+        projectionMatrix: { elements: IDENTITY },
+        matrixWorldInverse: { elements: IDENTITY },
+        position: { x: 0, y: 0, z: 1000 },
+      }),
+      scene: () => state.scene,
       getGlobeRadius: () => 100,
       globeMaterial: () => ({ color: { set: (c: string) => (state.oceanColor = c) } }),
       getScreenCoords: (lat: number, lng: number) => toScreen(lng, lat),
@@ -155,6 +174,14 @@ describe('GlobeView: setup', () => {
     expect(screen.queryByText('Loading the map…')).not.toBeInTheDocument();
   });
 
+  it('tells the game once the globe is ready, so its clock can start', async () => {
+    const onReady = vi.fn();
+    await setup({ onReady });
+    expect(onReady).not.toHaveBeenCalled();
+    act(() => (live().props.get('onGlobeReady') as () => void)());
+    expect(onReady).toHaveBeenCalledOnce();
+  });
+
   it('says so when the globe cannot be created, instead of loading forever', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     fake.failCreate = true;
@@ -190,8 +217,8 @@ describe('GlobeView: setup', () => {
     // Close enough that Sint Maarten (42 km²) is a target of its own on a
     // 700 px globe, without a ring.
     expect(MIN_ALTITUDE).toBeLessThan(0.03);
-    // Every highlight stays below the camera, however close it gets.
-    expect(ALTITUDE.correct).toBeLessThan(MIN_ALTITUDE);
+    // Every country stays below the camera, however close it gets.
+    expect(Math.max(...Object.values(ALTITUDE))).toBeLessThan(MIN_ALTITUDE);
   });
 
   it('draws an ocean colour, no image textures', async () => {
@@ -226,7 +253,7 @@ describe('GlobeView: the countries', () => {
     expect(MAP_PALETTE).toContain(cap(datum('BRA')));
   });
 
-  it('shows the highlight in colour and height', async () => {
+  it('shows the highlight in colour, at the base altitude', async () => {
     const highlight: GlobeHighlight = {
       pickedId: 'DEU',
       correctId: 'FRA',
@@ -236,11 +263,10 @@ describe('GlobeView: the countries', () => {
     await setup({ highlight });
     expect(accessor('polygonCapColor')(datum('FRA'))).toBe('#22c55e');
     expect(accessor('polygonCapColor')(datum('DEU'))).toBe('#ef4444');
-    expect(accessor('polygonAltitude')(datum('FRA'))).toBe(ALTITUDE.correct);
-    expect(accessor('polygonAltitude')(datum('DEU'))).toBe(ALTITUDE.picked);
-    expect(accessor('polygonAltitude')(datum('ESP'))).toBe(ALTITUDE.base);
-    expect(accessor('polygonSideColor')(datum('FRA'))).toBeTruthy();
-    expect(accessor('polygonSideColor')(datum('ESP'))).toBeFalsy();
+    for (const id of ['FRA', 'DEU', 'ESP']) {
+      expect(accessor('polygonAltitude')(datum(id))).toBe(ALTITUDE.base);
+      expect(accessor('polygonSideColor')(datum(id))).toBeFalsy();
+    }
   });
 
   it('raises a country under the mouse, but not under a finger', async () => {
@@ -284,6 +310,43 @@ describe('GlobeView: the camera', () => {
     expect(live().pov).toEqual(CONTINENT_VIEWS.europe);
   });
 
+  const answer = (correctId: string): GlobeHighlight => ({
+    ...NO_HIGHLIGHT,
+    correctId,
+    correctColor: '#22c55e',
+  });
+
+  it('leaves the camera alone when the answer is in frame', async () => {
+    const { rerender } = await setup();
+    const flights = live().flights.length;
+    const p = pointOf('ESP');
+    expect(p.x).toBeGreaterThan(FRAME_MARGIN_PX);
+    expect(p.y).toBeLessThan(700 - FRAME_MARGIN_PX);
+    rerender({ highlight: answer('ESP') });
+    expect(live().flights).toHaveLength(flights);
+  });
+
+  it('flies over the answer, at the same altitude, when it is out of frame', async () => {
+    const { rerender } = await setup({ continent: 'asia' });
+    // The player zoomed in over China; Japan is on this side of the globe
+    // but off to the right.
+    const zoomed = { lat: 30, lng: 100, altitude: 0.3 };
+    live().pov = zoomed;
+    expect(isWithinHorizon(zoomed, anchor('JPN'))).toBe(true);
+    expect(pointOf('JPN').x).toBeGreaterThan(1180 - FRAME_MARGIN_PX);
+    rerender({ highlight: answer('JPN') });
+    expect(live().pov).toEqual(viewOver(anchor('JPN'), zoomed));
+    expect(live().flights.at(-1)?.ms).toBeGreaterThan(0);
+  });
+
+  it('flies to an answer behind the globe', async () => {
+    // Heard Island is beyond the horizon at the Africa view, whatever the
+    // flat fake projection says about its screen position.
+    const { rerender } = await setup({ continent: 'africa' });
+    rerender({ highlight: answer('HMD') });
+    expect(live().pov).toEqual(viewOver(anchor('HMD'), CONTINENT_VIEWS.africa));
+  });
+
   it('flies back when the player presses recentre', async () => {
     const { onPick } = await setup({ continent: 'asia' });
     live().pov = { lat: -40, lng: 170, altitude: 0.3 };
@@ -294,6 +357,35 @@ describe('GlobeView: the camera', () => {
     fireEvent.click(button);
     expect(live().pov).toEqual(CONTINENT_VIEWS.asia);
     expect(onPick).not.toHaveBeenCalled();
+  });
+});
+
+describe('GlobeView: the outline of the answer', () => {
+  const draw = () => act(() => live().scene.onAfterRender?.());
+  const outlinePaths = () => [...screen.getByTestId('globe-outline').querySelectorAll('path')];
+
+  it('draws no outline while there is no answer to show', async () => {
+    await setup();
+    expect(screen.queryByTestId('globe-outline')).not.toBeInTheDocument();
+  });
+
+  it('outlines the answer after every frame the globe renders', async () => {
+    const { rerender } = await setup();
+    rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
+    const outline = screen.getByTestId('globe-outline');
+    expect(outline).toHaveAttribute('data-id', 'FRA');
+    draw();
+    const paths = outlinePaths();
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) expect(path.getAttribute('d')).toMatch(/^M[\d.-]+ [\d.-]+L/);
+  });
+
+  it('stops drawing once the answer is gone', async () => {
+    const { rerender } = await setup();
+    rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
+    rerender({ highlight: NO_HIGHLIGHT });
+    expect(screen.queryByTestId('globe-outline')).not.toBeInTheDocument();
+    expect(() => draw()).not.toThrow();
   });
 });
 
@@ -337,12 +429,14 @@ describe('GlobeView: picks', () => {
     expect(onPick).not.toHaveBeenCalled();
   });
 
-  it('lets a ring win over the country underneath', async () => {
+  it("lets a ring win over a large country only in the ring's bullseye", async () => {
     const { onPick } = await setup();
-    // Vatican City is ringed at the Europe view; 20 px off its centre is Italy.
+    // Vatican City is ringed at the Europe view; 8 and 20 px off its centre
+    // are both Italy (the bullseye rule, src/domain/pick.ts).
     const p = pointOf('VAT');
+    tap(p.x + 8, p.y);
     tap(p.x + 20, p.y);
-    expect(onPick).toHaveBeenCalledExactlyOnceWith('VAT');
+    expect(onPick.mock.calls).toEqual([['VAT'], ['ITA']]);
   });
 
   it('uses the latest onPick', async () => {

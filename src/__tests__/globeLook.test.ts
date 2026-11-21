@@ -88,19 +88,16 @@ describe('polygon altitudes', () => {
     expect(ALTITUDE.hover).toBeGreaterThan(ALTITUDE.base);
   });
 
-  it('raises the correct country above the picked one, so height alone tells them apart', () => {
+  it('leaves the answer and the pick flat, even under the mouse', () => {
+    // The owner's call on 2026-11-21: a raise cannot be seen from straight
+    // above, where the camera puts the answer, so the answer gets an outline
+    // instead (src/domain/outline.ts), drawn at the base altitude.
     const highlight = { ...NONE, pickedId: 'DEU', correctId: 'FRA' };
-    const picked = polygonAltitudeOf(country('DEU'), true, null, highlight);
-    const correct = polygonAltitudeOf(country('FRA'), true, null, highlight);
-    expect(picked).toBe(ALTITUDE.picked);
-    expect(correct).toBe(ALTITUDE.correct);
-    expect(picked).toBeGreaterThan(ALTITUDE.base);
-    expect(correct).toBeGreaterThan(picked);
-    // A highlight wins over hover.
-    expect(polygonAltitudeOf(country('FRA'), true, 'FRA', highlight)).toBe(ALTITUDE.correct);
-    expect(polygonAltitudeOf(country('FRA'), true, 'FRA', { ...highlight, correctId: 'FRA', pickedId: 'FRA' })).toBe(
-      ALTITUDE.correct,
-    );
+    expect(polygonAltitudeOf(country('DEU'), true, null, highlight)).toBe(ALTITUDE.base);
+    expect(polygonAltitudeOf(country('FRA'), true, null, highlight)).toBe(ALTITUDE.base);
+    expect(polygonAltitudeOf(country('FRA'), true, 'FRA', highlight)).toBe(ALTITUDE.base);
+    expect(polygonAltitudeOf(country('DEU'), true, 'DEU', highlight)).toBe(ALTITUDE.base);
+    expect(polygonAltitudeOf(country('ESP'), true, 'ESP', highlight)).toBe(ALTITUDE.hover);
   });
 });
 
@@ -110,6 +107,5 @@ describe('side walls', () => {
     // 319 ms to 2,280 ms (2026-11-21), and at the base altitude nobody sees them.
     expect(sideColorOf(ALTITUDE.base)).toBe('');
     expect(sideColorOf(ALTITUDE.hover)).toBe(SIDE_COLOR);
-    expect(sideColorOf(ALTITUDE.correct)).toBe(SIDE_COLOR);
   });
 });
