@@ -1,0 +1,10 @@
+{
+  // The e2e tree runs in Node (Playwright's runner), not in the browser, and
+  // has no business seeing Vitest's globals. Kept out of the root tsconfig so
+  // `pnpm build` stays a typecheck of what ships (same as math-quizz).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}

@@ -64,3 +64,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: test "${{ needs.verify.result }}" = success
+
+  e2e:
+    name: end-to-end (chromium)
+    runs-on: ubuntu-latest
+
+    # Deliberately not `needs: verify`. A browser failure and a unit failure
+    # are different news, and running them side by side means neither one
+    # hides the other behind a skipped job. Copied from math-quizz; added in
+    # Phase 2 because only a run here proves that WebGL works headless on
+    # GitHub's runners (see the launch flags in playwright.config.ts).
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      # Not in the matrix: Node only builds the bundle and serves it here, and
+      # `verify` already builds on every line. The browser is what this job tests.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # setup-node's pnpm cache covers node_modules, never the browser
+      # binaries, and those are the slow part. Keyed on the lockfile, so a
+      # Playwright bump fetches the matching build instead of reusing the old one.
+      - uses: actions/cache@v6
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - run: pnpm exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      # The cache holds the browser but not the system libraries it links
+      # against, and the runner image is free to change under us.
+      - run: pnpm exec playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      # `playwright.config.ts` builds the bundle and serves it with
+      # `vite preview` before the first spec runs, so there is no separate
+      # build step here.
+      - run: pnpm test:e2e
+
+      # The only way to read a failure that did not reproduce locally.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

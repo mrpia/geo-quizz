@@ -20,12 +20,17 @@ Needs Node 22 or 24 and pnpm (the version is pinned in `package.json`).
 pnpm install
 pnpm dev        # local dev server
 pnpm test       # Vitest, once
+pnpm test:e2e   # Playwright: builds, serves on :4173, drives Chromium
 pnpm build      # typecheck, then production build in dist/
 pnpm data       # regenerate src/data/world.json from Natural Earth
 ```
 
 `pnpm data` is only needed when the map data itself changes. The generated
 file is committed.
+
+`pnpm test:e2e` needs Playwright's Chromium once: `pnpm exec playwright
+install chromium`. The globe is WebGL, which headless Chromium draws in
+software, so the suite is slow on purpose and stays small.
 
 ## Map data
 
