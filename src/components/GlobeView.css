@@ -1,0 +1,80 @@
+.globe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0f172a; /* SPACE_COLOR in globeLook.ts, shown before the canvas exists */
+  user-select: none;
+}
+
+.globe[data-hover] {
+  cursor: pointer;
+}
+
+.globe__host {
+  position: absolute;
+  inset: 0;
+}
+
+.globe__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 1.25rem;
+  pointer-events: none;
+}
+
+.globe__recentre {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid rgba(226, 232, 240, 0.6);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.globe__recentre:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.globe__recentre svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/*
+ * A tap ring (plan, Phase 2 item 6): marks a country too small to hit at
+ * this zoom. 44 px is RING_DIAMETER_PX in src/domain/rings.ts. Pointers go
+ * through to the canvas, so a drag that starts on a ring still turns the
+ * globe; GlobeView decides which ring a tap meant. CSS2DRenderer centres
+ * the element on its point.
+ */
+.globe-ring {
+  width: 44px;
+  height: 44px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.8),
+    inset 0 0 0 1px rgba(15, 23, 42, 0.8);
+  pointer-events: none;
+}
+
+.globe-ring--hidden {
+  visibility: hidden;
+}
