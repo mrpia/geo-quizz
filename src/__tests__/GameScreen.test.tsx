@@ -132,13 +132,13 @@ describe('GameScreen: asking', () => {
 });
 
 describe('GameScreen: feedback', () => {
-  it('a right tap: ✓, the answer in green, the next question after 1 s', () => {
+  it('a right tap: ✅, the answer in green, the next question after 1 s', () => {
     setup();
     const first = target();
     advance(2_000);
     tap(first);
     expect(verdict()).toHaveAttribute('data-verdict', 'correct');
-    expect(verdict()).toHaveTextContent('✓');
+    expect(verdict()).toHaveTextContent('✅');
     expect(verdict()).toHaveTextContent('Well done!');
     expect(verdict()).toHaveAttribute('data-picked', first);
     expect(globe()).toHaveAttribute('data-correct', first);
@@ -154,13 +154,13 @@ describe('GameScreen: feedback', () => {
     expect(globe()).toHaveAttribute('data-correct', '');
   });
 
-  it('a wrong tap: ✗, names the country tapped, the pick in red and the answer in green, next after 2.5 s', () => {
+  it('a wrong tap: ❌, names the country tapped, the pick in red and the answer in green, next after 2.5 s', () => {
     setup();
     const first = target();
     const wrong = notTarget();
     tap(wrong);
     expect(verdict()).toHaveAttribute('data-verdict', 'wrong');
-    expect(verdict()).toHaveTextContent('✗');
+    expect(verdict()).toHaveTextContent('❌');
     expect(verdict()).toHaveTextContent(`You tapped ${nameOf(wrong)}`);
     // For the e2e specs, which never read text: the language is a setting.
     expect(verdict()).toHaveAttribute('data-picked', wrong);
@@ -177,12 +177,12 @@ describe('GameScreen: feedback', () => {
     expect(screen.getByTestId('game-counter')).toHaveTextContent('2 / 3');
   });
 
-  it("a timeout: ✗ Time's up!, the answer in green, next after 2.5 s", () => {
+  it("a timeout: ❌ Time's up!, the answer in green, next after 2.5 s", () => {
     setup({ seconds: 3 });
     const first = target();
     advance(3_100);
     expect(verdict()).toHaveAttribute('data-verdict', 'timeout');
-    expect(verdict()).toHaveTextContent('✗');
+    expect(verdict()).toHaveTextContent('❌');
     expect(verdict()).toHaveTextContent("Time's up!");
     expect(verdict()).toHaveAttribute('data-picked', '');
     expect(globe()).toHaveAttribute('data-correct', first);

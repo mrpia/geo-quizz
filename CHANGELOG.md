@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The continent's countries are shades of pink, other land stays grey.
+- No country rises any more, not even under the mouse. The country under the
+  mouse turns amber instead, with a thick white outline and a glow.
+- A right answer gets a ✅ in the middle of the country; a wrong tap gets a ❌
+  on the country tapped and a ✅ on the answer, over the red and green.
+- The game's header and the results rows mark answers with ✅ and ❌ as well,
+  in place of ✓ and ✗.
+
 ### Fixed
 
 - The first country of a round was named while the map was still loading.
