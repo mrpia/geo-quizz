@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "data": "node tools/build-data.mjs",
+    "ship": "pnpm build && firebase deploy --only hosting",
     "test:e2e": "tsc -p tsconfig.e2e.json && playwright test"
   },
   "dependencies": {
