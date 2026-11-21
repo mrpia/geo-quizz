@@ -4,6 +4,7 @@ import {
   combine,
   outlinePath,
   prepareOutline,
+  projectPoint,
   toCartesian,
   type OutlineCamera,
 } from '../domain/outline';
@@ -156,5 +157,22 @@ describe('the outline path', () => {
     // About 4° of longitude wide, on a unit sphere spread over 1000 px.
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(20);
     expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(60);
+  });
+});
+
+describe('placing a single point on screen', () => {
+  // Where the ✅ and ❌ marks go: a country's anchor.
+  it('projects a point facing the camera like the outline does', () => {
+    const point = toCartesian([10, 20], 1);
+    const p = projectPoint(point, 1, flat, 1000, 600);
+    const [run] = runs(outlinePath(prepareOutline({ type: 'Polygon', coordinates: [[[10, 20], [10, 20]]] }, 1), flat, 1000, 600));
+    expect(p).not.toBeNull();
+    expect(p!.x).toBeCloseTo(run[0][0], 0);
+    expect(p!.y).toBeCloseTo(run[0][1], 0);
+  });
+
+  it('returns null for a point behind the horizon', () => {
+    expect(projectPoint(toCartesian([180, 0], 1), 1, flat, 1000, 600)).toBeNull();
+    expect(projectPoint(toCartesian([90, 0], 1), 1, flat, 1000, 600)).toBeNull();
   });
 });

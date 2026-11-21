@@ -60,6 +60,45 @@ export type OutlineCamera = {
 };
 
 /**
+ * Where scene point (x, y, z) lands on the canvas, the way globe.gl's
+ * `getScreenCoords` places it (three.js's `Vector3.project`, then
+ * `(x + 1) · width / 2`, `(1 − y) · height / 2`). Writes into `out`, so the
+ * outline's per-vertex loop allocates nothing.
+ */
+const toScreen = (
+  m: ArrayLike<number>,
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  height: number,
+  out: { x: number; y: number },
+) => {
+  const w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  out.x = (((m[0] * x + m[4] * y + m[8] * z + m[12]) / w + 1) * width) / 2;
+  out.y = ((1 - (m[1] * x + m[5] * y + m[9] * z + m[13]) / w) * height) / 2;
+};
+
+/**
+ * Where one point of the globe, at `radius` from its centre, lands on the
+ * canvas, or null when it is behind the horizon (the same test as
+ * `outlinePath`). GlobeView places the ✅ and ❌ marks with it.
+ */
+export const projectPoint = (
+  [x, y, z]: Vec3,
+  radius: number,
+  camera: OutlineCamera,
+  width: number,
+  height: number,
+): { x: number; y: number } | null => {
+  const [cx, cy, cz] = camera.position;
+  if (x * cx + y * cy + z * cz <= radius * radius) return null;
+  const out = { x: 0, y: 0 };
+  toScreen(camera.matrix, x, y, z, width, height, out);
+  return out;
+};
+
+/**
  * The outline as SVG path data in canvas pixels, the way globe.gl's
  * `getScreenCoords` places a point (three.js's `Vector3.project`, then
  * `(x + 1) · width / 2`, `(1 − y) · height / 2`).
@@ -79,6 +118,7 @@ export const outlinePath = (
   const [cx, cy, cz] = camera.position;
   const horizon = shape.radius * shape.radius;
   const parts: string[] = [];
+  const s = { x: 0, y: 0 };
   const point = (command: 'M' | 'L', x: number, y: number) =>
     parts.push(`${command}${x.toFixed(1)} ${y.toFixed(1)}`);
 
@@ -103,9 +143,9 @@ export const outlinePath = (
         endRun();
         continue;
       }
-      const w = m[3] * x + m[7] * y + m[11] * z + m[15];
-      const sx = (((m[0] * x + m[4] * y + m[8] * z + m[12]) / w + 1) * width) / 2;
-      const sy = ((1 - (m[1] * x + m[5] * y + m[9] * z + m[13]) / w) * height) / 2;
+      toScreen(m, x, y, z, width, height, s);
+      const sx = s.x;
+      const sy = s.y;
       if (!drawing) {
         point('M', sx, sy);
         drawing = true;

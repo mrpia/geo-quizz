@@ -53,7 +53,7 @@ export const ResultsScreen = ({ world, answers, onReplay, onHome }: Props) => {
                 role="img"
                 aria-label={t(answer.correct ? 'results.correctAria' : 'results.wrongAria')}
               >
-                {answer.correct ? '✓' : '✗'}
+                {answer.correct ? '✅' : '❌'}
               </span>
               <span className="results__target">{nameOf(answer.targetId)}</span>
               <span className="results__detail">

@@ -126,3 +126,57 @@ export const settle = async (page: Page) => {
     )
     .toBe(true);
 };
+
+/** What a question's feedback showed, gathered over every frame it was up. */
+export type Feedback = {
+  verdict: string;
+  picked: string;
+  /** The country the answer outline was around, and whether it was drawn. */
+  outline: string | null;
+  outlined: boolean;
+  /** Every ✅ or ❌ seen on this side of the globe, by country. */
+  marks: Record<string, string>;
+};
+
+/**
+ * Records, from inside the page and on every frame, what each question's
+ * feedback showed, keyed by the country asked. A right answer stays up for
+ * 1 s and a wrong one for 2.5 s; a loaded machine running a handful of
+ * Playwright assertions one after the other misses that, so specs read this
+ * record instead, at their own pace.
+ */
+export const watchFeedback = async (page: Page) => {
+  await page.addInitScript(() => {
+    const log: Record<string, Feedback> = {};
+    (window as unknown as { __feedback: typeof log }).__feedback = log;
+    const look = () => {
+      const verdict = document.querySelector<HTMLElement>('[data-testid="game-verdict"]');
+      const asked = document.querySelector<HTMLElement>('[data-testid="game-target"]')?.dataset.id;
+      if (verdict && asked) {
+        const entry = (log[asked] ??= {
+          verdict: verdict.dataset.verdict ?? '',
+          picked: verdict.dataset.picked ?? '',
+          outline: null,
+          outlined: false,
+          marks: {},
+        });
+        const outline = document.querySelector<SVGElement>('[data-testid="globe-answer-outline"]');
+        if (outline) {
+          entry.outline = outline.dataset.id ?? null;
+          if (outline.querySelector('path')?.getAttribute('d')?.startsWith('M')) entry.outlined = true;
+        }
+        for (const mark of document.querySelectorAll<HTMLElement>('[data-testid="globe-mark"]')) {
+          if (!mark.classList.contains('globe-mark--hidden')) entry.marks[mark.dataset.id ?? ''] = mark.dataset.mark ?? '';
+        }
+      }
+      requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
+};
+
+export const feedbackOn = (page: Page, asked: string) =>
+  page.evaluate(
+    (id) => (window as unknown as { __feedback?: Record<string, Feedback> }).__feedback?.[id] ?? null,
+    asked,
+  );

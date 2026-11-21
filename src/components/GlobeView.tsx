@@ -1,10 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 // Types only: erased at build time. The modules themselves arrive through
 // the `import()` below, so three.js and d3-geo stay out of the first bundle.
 import type { GlobeInstance } from 'globe.gl';
 import { createTapTracker } from '../domain/gesture';
 import type * as Pick from '../domain/pick';
-import { combine, outlinePath, prepareOutline } from '../domain/outline';
+import {
+  combine,
+  outlinePath,
+  prepareOutline,
+  projectPoint,
+  toCartesian,
+  type OutlineShape,
+} from '../domain/outline';
 import { ringedIds } from '../domain/rings';
 import { CONTINENT_VIEWS, isInFrame, isWithinHorizon, viewOver } from '../domain/view';
 import { countriesOf, type Continent, type Country, type World } from '../domain/world';
@@ -18,8 +26,6 @@ import {
   OCEAN_COLOR,
   SPACE_COLOR,
   capColorOf,
-  polygonAltitudeOf,
-  sideColorOf,
   type GlobeHighlight,
 } from './globeLook';
 import './GlobeView.css';
@@ -36,16 +42,15 @@ export const MIN_ALTITUDE = 0.02;
 export const MAX_ALTITUDE = 4;
 /** How long the camera takes to fly to a view: the continent's, or the answer's. */
 const FLY_MS = 800;
-/** How long a country takes to rise or sink. */
-const RAISE_MS = 250;
 
 export type GlobeViewProps = {
   world: World;
   continent: Continent;
   /**
    * What to show after a tap or a timeout. Nothing by default. The answer
-   * (`correctId`) is outlined, and the camera flies over it, at the altitude
-   * it has, when it is out of frame (plan, Phase 3).
+   * (`correctId`) is outlined and marked ✅, a wrong pick marked ❌, and the
+   * camera flies over the answer, at the altitude it has, when it is out of
+   * frame (plan, Phase 3).
    */
   highlight?: GlobeHighlight;
   /** A tap on a country of `continent`. Taps anywhere else, drags and pinches call nothing. */
@@ -61,7 +66,10 @@ export type GlobeViewProps = {
 
 type PolygonDatum = { country: Country };
 type RingDatum = { id: string; lat: number; lng: number };
-type Style = { cap: string; side: string; altitude: number };
+/** An outlined country: the answer, or the one under the mouse. */
+type Outline = { kind: 'answer' | 'hover'; id: string };
+/** ✅ on the answer, ❌ on a wrong pick (the owner's call, 2026-11-21). */
+type Mark = { id: string; mark: 'right' | 'wrong' };
 
 /** What the outline reads from globe.gl's three.js camera, after each render. */
 type CameraMatrices = {
@@ -109,6 +117,9 @@ export const GlobeView = ({
   const frameRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const [globe, setGlobe] = useState<GlobeInstance | null>(null);
+  // Where the outlines go: right after globe.gl's canvas, so its HTML layer
+  // (rings, marks), which comes after, stays on top of them.
+  const [overlay, setOverlay] = useState<HTMLElement | null>(null);
   const [pick, setPick] = useState<typeof Pick | null>(null);
   const [failed, setFailed] = useState(false);
   // Ready means drawn: the sphere is up (globe.gl's onGlobeReady) and every
@@ -133,16 +144,42 @@ export const GlobeView = ({
   const { pickedId, correctId, pickedColor, correctColor } = highlight;
   // Worked out here rather than inside globe.gl's accessors, so a bad value
   // (an unknown MAPCOLOR7) throws during render, where React reports it.
-  const styles = useMemo(() => {
+  const caps = useMemo(() => {
     const shown = { pickedId, correctId, pickedColor, correctColor };
-    return new Map<string, Style>(
-      world.countries.map((c) => {
-        const play = inPlay.has(c.id);
-        const altitude = polygonAltitudeOf(c, play, hoverId, shown);
-        return [c.id, { cap: capColorOf(c, play, shown), side: sideColorOf(altitude), altitude }];
-      }),
+    return new Map<string, string>(
+      world.countries.map((c) => [c.id, capColorOf(c, inPlay.has(c.id), hoverId, shown)]),
     );
   }, [world, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor]);
+
+  const countryById = useCallback(
+    (id: string, use: string): Country => {
+      const country = world.byId.get(id);
+      if (!country) throw new Error(`GlobeView: no country ${JSON.stringify(id)} to ${use}`);
+      return country;
+    },
+    [world],
+  );
+
+  // ✅ on the answer, ❌ on a wrong pick (none on a timeout, or when the pick
+  // is the answer).
+  const marks = useMemo<Mark[]>(
+    () => [
+      ...(correctId ? [{ id: correctId, mark: 'right' as const }] : []),
+      ...(pickedId && pickedId !== correctId ? [{ id: pickedId, mark: 'wrong' as const }] : []),
+    ],
+    [correctId, pickedId],
+  );
+
+  // The answer, and the country under the mouse unless it is the answer or
+  // the pick, which keep their own look.
+  const hoverOutlineId = hoverId && hoverId !== correctId && hoverId !== pickedId ? hoverId : null;
+  const outlines = useMemo<Outline[]>(
+    () => [
+      ...(correctId ? [{ kind: 'answer' as const, id: correctId }] : []),
+      ...(hoverOutlineId ? [{ kind: 'hover' as const, id: hoverOutlineId }] : []),
+    ],
+    [correctId, hoverOutlineId],
+  );
 
   // A string, so zooming that leaves the same countries ringed changes nothing.
   const ringKey = useMemo(
@@ -181,7 +218,13 @@ export const GlobeView = ({
             (d) => countryOf(d).geometry as unknown as { type: string; coordinates: number[] },
           )
           .polygonStrokeColor(() => BORDER_COLOR)
-          .polygonsTransitionDuration(RAISE_MS)
+          // Nothing rises (the owner's call, 2026-11-21): one altitude, no
+          // walls, nothing to animate. three-globe builds walls only for a
+          // truthy side colour, and walls under all 1,620 shapes made a
+          // SwiftShader frame seven times slower (2,280 ms against 319 ms).
+          .polygonAltitude(() => ALTITUDE.base)
+          .polygonSideColor(() => '')
+          .polygonsTransitionDuration(0)
           .htmlElement(makeRing)
           .htmlLat((d) => (d as RingDatum).lat)
           .htmlLng((d) => (d as RingDatum).lng)
@@ -204,7 +247,11 @@ export const GlobeView = ({
         const controls = g.controls();
         controls.minDistance = radius * (1 + MIN_ALTITUDE);
         controls.maxDistance = radius * (1 + MAX_ALTITUDE);
+        const layer = document.createElement('div');
+        layer.className = 'globe__overlay';
+        g.renderer().domElement.insertAdjacentElement('afterend', layer);
         instance = g;
+        setOverlay(layer);
         setPick(pickModule);
         // A Kapsule instance is a function, and React calls a function given
         // to a state setter as an updater: `setGlobe(g)` would run `g(null)`,
@@ -255,16 +302,12 @@ export const GlobeView = ({
 
   useEffect(() => {
     if (!globe) return;
-    const styleOf = (d: object): Style => {
-      const style = styles.get(countryOf(d).id);
-      if (!style) throw new Error(`GlobeView: no style for ${countryOf(d).id}`);
-      return style;
-    };
-    globe
-      .polygonCapColor((d) => styleOf(d).cap)
-      .polygonSideColor((d) => styleOf(d).side)
-      .polygonAltitude((d) => styleOf(d).altitude);
-  }, [globe, styles]);
+    globe.polygonCapColor((d) => {
+      const cap = caps.get(countryOf(d).id);
+      if (!cap) throw new Error(`GlobeView: no colour for ${countryOf(d).id}`);
+      return cap;
+    });
+  }, [globe, caps]);
 
   useEffect(() => {
     globe?.htmlElementsData(rings);
@@ -296,23 +339,50 @@ export const GlobeView = ({
     }
   }, [globe, world, correctId]);
 
-  // The answer's outline, an SVG path over the canvas, redrawn after every
-  // frame globe.gl renders so it moves with the globe (src/domain/outline.ts).
-  const outlineRef = useRef<SVGGElement>(null);
-  useEffect(() => {
-    const group = outlineRef.current;
-    if (!globe || !correctId || !group) return;
-    const country = world.byId.get(correctId);
-    if (!country) throw new Error(`GlobeView: no country ${JSON.stringify(correctId)} to outline`);
-    const shape = prepareOutline(country.geometry, globe.getGlobeRadius() * (1 + ALTITUDE.base));
-    const paths = [...group.querySelectorAll('path')];
+  // The outlines (the answer's, the hovered country's) and the ✅ and ❌
+  // marks: SVG over the canvas, placed again after every frame globe.gl
+  // renders so they move with the globe (src/domain/outline.ts). React puts
+  // a mark in the page in the same render as the verdict; globe.gl's own
+  // HTML layer would only show it a few frames later, which on a slow device
+  // can outlast a 1 s answer. A layout effect, so nothing paints before it
+  // has its place. Prepared shapes are kept, as the mouse comes back to the
+  // same countries.
+  const outlineRef = useRef<SVGSVGElement>(null);
+  const prepared = useMemo(() => new Map<string, OutlineShape>(), [globe, world]);
+  useLayoutEffect(() => {
+    const svg = outlineRef.current;
+    if (!globe || !svg) return;
+    const radius = globe.getGlobeRadius() * (1 + ALTITUDE.base);
+    const lines = outlines.map(({ kind, id }) => {
+      let shape = prepared.get(id);
+      if (!shape) {
+        shape = prepareOutline(countryById(id, 'outline').geometry, radius);
+        prepared.set(id, shape);
+      }
+      return { shape, paths: [...svg.querySelectorAll(`g[data-kind="${kind}"] path`)] };
+    });
+    const pins = marks.map(({ id }) => ({
+      point: toCartesian(countryById(id, 'mark').properties.anchor, radius),
+      element: svg.querySelector(`[data-testid="globe-mark"][data-id="${id}"]`),
+    }));
     const camera = globe.camera() as unknown as CameraMatrices;
     const scene = globe.scene() as unknown as RenderHook;
     const draw = () => {
       const { x, y, z } = camera.position;
-      const matrix = combine(camera.projectionMatrix.elements, camera.matrixWorldInverse.elements);
-      const d = outlinePath(shape, { matrix, position: [x, y, z] }, globe.width(), globe.height());
-      for (const path of paths) path.setAttribute('d', d);
+      const view = {
+        matrix: combine(camera.projectionMatrix.elements, camera.matrixWorldInverse.elements),
+        position: [x, y, z] as const,
+      };
+      const [width, height] = [globe.width(), globe.height()];
+      for (const { shape, paths } of lines) {
+        const d = outlinePath(shape, view, width, height);
+        for (const path of paths) path.setAttribute('d', d);
+      }
+      for (const { point, element } of pins) {
+        const at = projectPoint(point, radius, view, width, height);
+        element?.classList.toggle('globe-mark--hidden', !at);
+        if (at) element?.setAttribute('transform', `translate(${at.x.toFixed(1)} ${at.y.toFixed(1)})`);
+      }
     };
     const previous = scene.onAfterRender;
     scene.onAfterRender = draw;
@@ -320,7 +390,7 @@ export const GlobeView = ({
     return () => {
       scene.onAfterRender = previous;
     };
-  }, [globe, world, correctId]);
+  }, [globe, prepared, outlines, marks, countryById]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -424,18 +494,37 @@ export const GlobeView = ({
       data-hover={hoverId ? '' : undefined}
     >
       <div ref={hostRef} className="globe__host" />
-      {globe && correctId && (
-        // Three strokes of one path: two faint, wide ones for the glow, and
-        // the line. SVG blends a stroke once, so the glow stays faint where
-        // the border's vertices crowd (three.js wide lines overlap there).
-        <svg className="globe__outline" data-testid="globe-outline" data-id={correctId} aria-hidden="true">
-          <g ref={outlineRef}>
-            <path className="globe__outline-glow globe__outline-glow--wide" />
-            <path className="globe__outline-glow" />
-            <path className="globe__outline-line" />
-          </g>
-        </svg>
-      )}
+      {overlay &&
+        (outlines.length > 0 || marks.length > 0) &&
+        createPortal(
+          <svg ref={outlineRef} className="globe__outline" aria-hidden="true">
+            {outlines.map(({ kind, id }) => (
+              // Three strokes of one path: two faint, wide ones for the glow,
+              // and the line. SVG blends a stroke once, so the glow stays faint
+              // where the border's vertices crowd (three.js wide lines overlap
+              // there).
+              <g key={kind} data-testid={`globe-${kind}-outline`} data-kind={kind} data-id={id}>
+                <path className="globe__outline-glow globe__outline-glow--wide" />
+                <path className="globe__outline-glow" />
+                <path className="globe__outline-line" />
+              </g>
+            ))}
+            {marks.map(({ id, mark }) => (
+              // Placed and shown by the layout effect above: a mark starts
+              // hidden, so it never shows at the corner before its place is known.
+              <text
+                key={`${mark}-${id}`}
+                className="globe-mark globe-mark--hidden"
+                data-testid="globe-mark"
+                data-id={id}
+                data-mark={mark}
+              >
+                {mark === 'right' ? '✅' : '❌'}
+              </text>
+            ))}
+          </svg>,
+          overlay,
+        )}
       {status === 'loading' && <p className="globe__status">{t('common.loading')}</p>}
       {status === 'error' && (
         <p className="globe__status" role="alert">

@@ -1,6 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CONTINENT_VIEWS } from '../src/domain/view';
-import { anchorOf, at, screenPoint, seedRound, settle, startRound, target, verdict } from './fixtures';
+import {
+  anchorOf,
+  at,
+  feedbackOn,
+  screenPoint,
+  seedRound,
+  settle,
+  startRound,
+  target,
+  verdict,
+  watchFeedback,
+} from './fixtures';
 
 /**
  * Whole rounds in a real browser (plan, Phase 3): a 3-country round played
@@ -19,7 +30,7 @@ const answer = async (page: Page, tap: Tap, asked: string, id: string) => {
   await settle(page);
   const p = await at(page, id);
   await tap(page, p.x, p.y);
-  await expect(verdict(page)).toHaveAttribute('data-picked', id);
+  await expect.poll(async () => (await feedbackOn(page, asked))?.picked).toBe(id);
 };
 
 const results = (page: Page) => page.getByTestId('results-row');
@@ -33,19 +44,13 @@ for (const [device, tap] of [
 
     test('plays a 3-country round to the results, then again', async ({ page }) => {
       await seedRound(page, { continent: 'europe', secondsPerQuestion: 60 }, ['FRA', 'DEU', 'ESP']);
+      await watchFeedback(page);
       await startRound(page);
       await expect(page.getByTestId('game-counter')).toHaveText('1 / 3');
 
       await answer(page, tap, 'FRA', 'FRA');
-      await expect(verdict(page)).toHaveAttribute('data-verdict', 'correct');
-      await expect(page.getByTestId('game-score')).toContainText('1');
-
-      // A wrong tap: the answer is outlined, the pick named in the header.
+      // A wrong tap: the answer is outlined and marked ✅, the pick marked ❌.
       await answer(page, tap, 'DEU', 'POL');
-      await expect(verdict(page)).toHaveAttribute('data-verdict', 'wrong');
-      await expect(page.getByTestId('globe-outline')).toHaveAttribute('data-id', 'DEU');
-      await expect(page.getByTestId('globe-outline').locator('path').first()).toHaveAttribute('d', /^M/);
-
       await answer(page, tap, 'ESP', 'ESP');
 
       await expect(page.getByTestId('results-score')).toHaveText('2 / 3', { timeout: 15_000 });
@@ -55,6 +60,16 @@ for (const [device, tap] of [
         'wrong',
         'correct',
       ]);
+      const shown = (verdict: string, picked: string, answer: string, marks: Record<string, string>) => ({
+        verdict,
+        picked,
+        outline: answer,
+        outlined: true,
+        marks,
+      });
+      expect(await feedbackOn(page, 'FRA')).toEqual(shown('correct', 'FRA', 'FRA', { FRA: 'right' }));
+      expect(await feedbackOn(page, 'DEU')).toEqual(shown('wrong', 'POL', 'DEU', { DEU: 'right', POL: 'wrong' }));
+      expect(await feedbackOn(page, 'ESP')).toEqual(shown('correct', 'ESP', 'ESP', { ESP: 'right' }));
 
       await page.getByTestId('play-again').click();
       await expect(page.getByTestId('globe')).toHaveAttribute('data-state', 'ready', { timeout: 45_000 });
@@ -73,15 +88,16 @@ test('a round whose timer runs out flies to the answer and outlines it', async (
   // The answer is on screen for 2.5 s, and a loaded machine polls slowly, so
   // the page itself records, frame by frame, the verdict, the outline, and
   // whether the camera came over the answer at the round's altitude with the
-  // outline drawn there.
+  // outline drawn and the ✅ showing there.
   const [lng, lat] = anchorOf('HMD');
   await page.evaluate(
     ({ lat, lng, altitude }) => {
-      const seen = { verdict: '', outline: '', flew: false, outlined: false };
+      const seen = { verdict: '', outline: '', flew: false, outlined: false, marked: false };
       (window as unknown as { __seen: typeof seen }).__seen = seen;
       const look = () => {
         const verdict = document.querySelector<HTMLElement>('[data-testid="game-verdict"]');
-        const outline = document.querySelector<SVGElement>('[data-testid="globe-outline"]');
+        const outline = document.querySelector<SVGElement>('[data-testid="globe-answer-outline"]');
+        const tick = document.querySelector('[data-testid="globe-mark"][data-id="HMD"][data-mark="right"]');
         seen.verdict ||= verdict?.dataset.verdict ?? '';
         seen.outline ||= outline?.dataset.id ?? '';
         const d = outline?.querySelector('path')?.getAttribute('d') ?? '';
@@ -89,6 +105,7 @@ test('a round whose timer runs out flies to the answer and outlines it', async (
         if (view && Math.hypot(view.lat - lat, view.lng - lng) < 0.5 && Math.abs(view.altitude - altitude) < 0.01) {
           seen.flew = true;
           if (d.startsWith('M')) seen.outlined = true;
+          if (tick && !tick.classList.contains('globe-mark--hidden')) seen.marked = true;
         }
         if (!document.querySelector('[data-testid="results-score"]')) requestAnimationFrame(look);
       };
@@ -105,5 +122,6 @@ test('a round whose timer runs out flies to the answer and outlines it', async (
     outline: 'HMD',
     flew: true,
     outlined: true,
+    marked: true,
   });
 });

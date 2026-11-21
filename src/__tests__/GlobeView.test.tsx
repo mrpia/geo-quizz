@@ -8,6 +8,7 @@ import { GlobeView, MAX_ALTITUDE, MIN_ALTITUDE, type GlobeViewProps } from '../c
 import { shapeCount } from '../components/globeShapes';
 import {
   ALTITUDE,
+  HOVER_COLOR,
   MAP_PALETTE,
   NO_HIGHLIGHT,
   OTHER_LAND_COLOR,
@@ -256,7 +257,7 @@ describe('GlobeView: setup', () => {
     // 700 px globe, without a ring.
     expect(MIN_ALTITUDE).toBeLessThan(0.03);
     // Every country stays below the camera, however close it gets.
-    expect(Math.max(...Object.values(ALTITUDE))).toBeLessThan(MIN_ALTITUDE);
+    expect(ALTITUDE.base).toBeLessThan(MIN_ALTITUDE);
   });
 
   it('draws an ocean colour, no image textures', async () => {
@@ -291,6 +292,17 @@ describe('GlobeView: the countries', () => {
     expect(MAP_PALETTE).toContain(cap(datum('BRA')));
   });
 
+  it('keeps every country flat, without walls, and never animates them', async () => {
+    await setup();
+    for (const id of ['FRA', 'BRA', 'VAT']) {
+      expect(accessor('polygonAltitude')(datum(id))).toBe(ALTITUDE.base);
+      // three-globe builds walls only for a truthy side colour; walls under
+      // all 1,620 shapes made a SwiftShader frame seven times slower.
+      expect(accessor('polygonSideColor')(datum(id))).toBe('');
+    }
+    expect(live().props.get('polygonsTransitionDuration')).toBe(0);
+  });
+
   it('shows the highlight in colour, at the base altitude', async () => {
     const highlight: GlobeHighlight = {
       pickedId: 'DEU',
@@ -307,20 +319,39 @@ describe('GlobeView: the countries', () => {
     }
   });
 
-  it('raises a country under the mouse, but not under a finger', async () => {
+  it('turns a country under the mouse amber and outlines it, but not under a finger', async () => {
     await setup();
     const frame = live().canvas;
     const hover = live().props.get('onPolygonHover') as (d: object | null) => void;
+    const outlined = () => screen.queryByTestId('globe-hover-outline')?.getAttribute('data-id') ?? null;
     fireEvent.pointerMove(frame, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
     act(() => hover(datum('FRA')));
-    expect(accessor('polygonAltitude')(datum('FRA'))).toBe(ALTITUDE.hover);
-    act(() => hover(datum('BRA')));
-    expect(accessor('polygonAltitude')(datum('BRA'))).toBe(ALTITUDE.base);
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(HOVER_COLOR);
     expect(accessor('polygonAltitude')(datum('FRA'))).toBe(ALTITUDE.base);
+    expect(outlined()).toBe('FRA');
+    // Other land cannot be picked, so it does not light up.
+    act(() => hover(datum('BRA')));
+    expect(accessor('polygonCapColor')(datum('BRA'))).toBe(OTHER_LAND_COLOR);
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
+    expect(outlined()).toBeNull();
     // A touch leaves globe.gl's hover on the last country touched; ignore it.
     fireEvent.pointerDown(frame, { pointerId: 2, clientX: 5, clientY: 5, pointerType: 'touch' });
     act(() => hover(datum('DEU')));
-    expect(accessor('polygonAltitude')(datum('DEU'))).toBe(ALTITUDE.base);
+    expect(accessor('polygonCapColor')(datum('DEU'))).not.toBe(HOVER_COLOR);
+    expect(outlined()).toBeNull();
+  });
+
+  it('keeps the answer and the pick in their colours under the mouse', async () => {
+    const highlight: GlobeHighlight = { pickedId: 'DEU', correctId: 'FRA', pickedColor: '#ef4444', correctColor: '#22c55e' };
+    await setup({ highlight });
+    const hover = live().props.get('onPolygonHover') as (d: object | null) => void;
+    fireEvent.pointerMove(live().canvas, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
+    act(() => hover(datum('DEU')));
+    expect(accessor('polygonCapColor')(datum('DEU'))).toBe('#ef4444');
+    act(() => hover(datum('FRA')));
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe('#22c55e');
+    // The answer has its own outline already.
+    expect(screen.queryByTestId('globe-hover-outline')).not.toBeInTheDocument();
   });
 });
 
@@ -400,17 +431,17 @@ describe('GlobeView: the camera', () => {
 
 describe('GlobeView: the outline of the answer', () => {
   const draw = () => act(() => live().scene.onAfterRender?.());
-  const outlinePaths = () => [...screen.getByTestId('globe-outline').querySelectorAll('path')];
+  const outlinePaths = () => [...screen.getByTestId('globe-answer-outline').querySelectorAll('path')];
 
   it('draws no outline while there is no answer to show', async () => {
     await setup();
-    expect(screen.queryByTestId('globe-outline')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('globe-answer-outline')).not.toBeInTheDocument();
   });
 
   it('outlines the answer after every frame the globe renders', async () => {
     const { rerender } = await setup();
     rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
-    const outline = screen.getByTestId('globe-outline');
+    const outline = screen.getByTestId('globe-answer-outline');
     expect(outline).toHaveAttribute('data-id', 'FRA');
     draw();
     const paths = outlinePaths();
@@ -418,12 +449,73 @@ describe('GlobeView: the outline of the answer', () => {
     for (const path of paths) expect(path.getAttribute('d')).toMatch(/^M[\d.-]+ [\d.-]+L/);
   });
 
+  it('draws the hovered country and the answer at the same time', async () => {
+    const { rerender } = await setup();
+    rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
+    fireEvent.pointerMove(live().canvas, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
+    act(() => (live().props.get('onPolygonHover') as (d: object | null) => void)(datum('ESP')));
+    draw();
+    for (const testId of ['globe-answer-outline', 'globe-hover-outline']) {
+      const path = screen.getByTestId(testId).querySelector('path');
+      expect(path?.getAttribute('d'), testId).toMatch(/^M/);
+    }
+    expect(screen.getByTestId('globe-hover-outline')).toHaveAttribute('data-id', 'ESP');
+  });
+
   it('stops drawing once the answer is gone', async () => {
     const { rerender } = await setup();
     rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
     rerender({ highlight: NO_HIGHLIGHT });
-    expect(screen.queryByTestId('globe-outline')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('globe-answer-outline')).not.toBeInTheDocument();
     expect(() => draw()).not.toThrow();
+  });
+});
+
+describe('GlobeView: the ✅ and ❌ marks', () => {
+  const draw = () => act(() => live().scene.onAfterRender?.());
+  const marks = () =>
+    screen.queryAllByTestId('globe-mark').map((m) => ({ id: m.dataset.id, mark: m.dataset.mark, text: m.textContent }));
+
+  it('marks nothing while there is no answer to show', async () => {
+    await setup();
+    expect(marks()).toEqual([]);
+  });
+
+  it('marks a right answer ✅, in the same render as the highlight', async () => {
+    const { rerender } = await setup();
+    rerender({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
+    expect(marks()).toEqual([{ id: 'FRA', mark: 'right', text: '✅' }]);
+  });
+
+  it('marks a wrong pick ❌ and the answer ✅', async () => {
+    await setup({ highlight: { pickedId: 'DEU', correctId: 'FRA', pickedColor: '#ef4444', correctColor: '#22c55e' } });
+    expect(marks()).toEqual([
+      { id: 'FRA', mark: 'right', text: '✅' },
+      { id: 'DEU', mark: 'wrong', text: '❌' },
+    ]);
+  });
+
+  it('draws the marks over the outlines', async () => {
+    await setup({ highlight: { ...NO_HIGHLIGHT, correctId: 'FRA', correctColor: '#22c55e' } });
+    const outline = screen.getByTestId('globe-answer-outline');
+    const mark = screen.getByTestId('globe-mark');
+    // Later in the same SVG paints on top.
+    expect(outline.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("places each mark on the country's anchor after every frame, and hides it behind the globe", async () => {
+    // The fake camera looks from +z: Europe faces it, the Pacific does not.
+    const { rerender } = await setup({
+      highlight: { pickedId: 'DEU', correctId: 'FRA', pickedColor: '#ef4444', correctColor: '#22c55e' },
+    });
+    draw();
+    for (const mark of screen.getAllByTestId('globe-mark')) {
+      expect(mark.getAttribute('transform')).toMatch(/^translate\([\d.-]+ [\d.-]+\)$/);
+      expect(mark).not.toHaveClass('globe-mark--hidden');
+    }
+    rerender({ continent: 'oceania', highlight: { ...NO_HIGHLIGHT, correctId: 'NZL', correctColor: '#22c55e' } });
+    draw();
+    expect(screen.getByTestId('globe-mark')).toHaveClass('globe-mark--hidden');
   });
 });
 
