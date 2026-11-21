@@ -99,6 +99,18 @@ describe('GameScreen: asking', () => {
     expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 14');
   });
 
+  it('asks the first country only once the globe is drawn, and starts the clock then', () => {
+    setup({ ready: false });
+    expect(screen.queryByTestId('game-target')).not.toBeInTheDocument();
+    expect(screen.queryByText('Find this country:')).not.toBeInTheDocument();
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 3');
+    advance(5_000);
+    fireEvent.click(screen.getByTestId('globe-ready'));
+    expect(screen.getByTestId('game-target')).toHaveTextContent(nameOf(target()));
+    expect(screen.getByText('Find this country:')).toBeInTheDocument();
+    expect(secondsLeft()).toBe(10);
+  });
+
   it('keeps the clock still until the globe is drawn', () => {
     setup({ ready: false });
     advance(30_000);
@@ -111,8 +123,11 @@ describe('GameScreen: asking', () => {
 
   it('ignores taps until the globe is drawn', () => {
     setup({ ready: false });
-    tap(target());
+    // The target is not shown yet, so tap them all: it is among them.
+    for (const c of countriesOf(world, 'europe')) tap(c.id);
     expect(verdict()).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('globe-ready'));
+    expect(screen.getByTestId('game-score')).toHaveTextContent('Score: 0');
   });
 });
 

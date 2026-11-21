@@ -5,6 +5,7 @@ import { parseWorld, type WorldTopology } from '../domain/world';
 import { CONTINENT_VIEWS, FRAME_MARGIN_PX, isWithinHorizon, viewOver, type View } from '../domain/view';
 import { LanguageProvider } from '../i18n/I18nContext';
 import { GlobeView, MAX_ALTITUDE, MIN_ALTITUDE, type GlobeViewProps } from '../components/GlobeView';
+import { shapeCount } from '../components/globeShapes';
 import {
   ALTITUDE,
   MAP_PALETTE,
@@ -30,8 +31,10 @@ type FakeGlobe = {
   canvas: HTMLCanvasElement;
   /** Set to false to make the next taps land off the globe. */
   surface: boolean;
-  /** What GlobeView hooks into three.js's render: `onAfterRender`. */
-  scene: { onAfterRender?: () => void };
+  /** What GlobeView hooks into three.js's render (`onAfterRender`) and looks through for the shapes. */
+  scene: { onAfterRender?: () => void; traverse(visit: (object: object) => void): void };
+  /** The country shapes in the scene; empty until a test calls `buildShapes`. */
+  shapes: object[];
 };
 
 const fake = vi.hoisted(() => ({ globes: [] as unknown[], failCreate: false }));
@@ -54,7 +57,8 @@ vi.mock('globe.gl', () => {
       destroyed: false,
       canvas,
       surface: true,
-      scene: {},
+      scene: { traverse: (visit) => state.shapes.forEach(visit) },
+      shapes: [],
     };
     fake.globes.push(state);
     const api: Record<string, unknown> = {
@@ -127,6 +131,13 @@ const live = () => {
   return globes[0];
 };
 const accessor = (name: string) => live().props.get(name) as Accessor;
+
+/** What globe.gl does in an update after `polygonsData`: build every country's shapes. */
+const buildShapes = () => {
+  const built = () => ({ __globeObjType: 'polygon', children: [{ geometry: { attributes: { position: {} } } }] });
+  live().shapes = Array.from({ length: shapeCount(world.countries) }, built);
+};
+const globeReady = () => act(() => (live().props.get('onGlobeReady') as () => void)());
 const datum = (id: string) => (live().props.get('polygonsData') as { country: { id: string } }[]).find((d) => d.country.id === id)!;
 
 const setup = async (props: Partial<GlobeViewProps> = {}) => {
@@ -164,22 +175,49 @@ afterEach(() => {
 });
 
 describe('GlobeView: setup', () => {
-  it('loads globe.gl, keeps one live globe under StrictMode, and says when it is ready', async () => {
+  it('loads globe.gl, keeps one live globe under StrictMode, and says when the map is drawn', async () => {
     await setup();
     const frame = screen.getByTestId('globe');
     expect(frame).toHaveAttribute('data-state', 'loading');
     expect(screen.getByText('Loading the map…')).toBeInTheDocument();
-    act(() => (live().props.get('onGlobeReady') as () => void)());
-    expect(frame).toHaveAttribute('data-state', 'ready');
+    globeReady();
+    buildShapes();
+    await waitFor(() => expect(frame).toHaveAttribute('data-state', 'ready'));
     expect(screen.queryByText('Loading the map…')).not.toBeInTheDocument();
   });
 
-  it('tells the game once the globe is ready, so its clock can start', async () => {
+  it('waits for the countries, not only for the sphere', async () => {
+    // globe.gl's onGlobeReady comes with the sphere; the shapes are built
+    // in a later update.
     const onReady = vi.fn();
     await setup({ onReady });
+    globeReady();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-state', 'loading');
     expect(onReady).not.toHaveBeenCalled();
-    act(() => (live().props.get('onGlobeReady') as () => void)());
-    expect(onReady).toHaveBeenCalledOnce();
+    buildShapes();
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-state', 'ready');
+  });
+
+  it('waits for every shape', async () => {
+    const onReady = vi.fn();
+    await setup({ onReady });
+    globeReady();
+    buildShapes();
+    live().shapes.pop();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
+  it('waits for the sphere too', async () => {
+    const onReady = vi.fn();
+    await setup({ onReady });
+    buildShapes();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(onReady).not.toHaveBeenCalled();
+    globeReady();
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
   });
 
   it('says so when the globe cannot be created, instead of loading forever', async () => {

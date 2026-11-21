@@ -27,8 +27,9 @@ const verdictOf = (answer: Answer): Verdict =>
 
 /**
  * One round (plan, Phase 3). The screen owns the clock: a question's time
- * runs from the moment it is shown, and the first one waits until the globe
- * is drawn. The rules are `gameReducer`'s.
+ * runs from the moment it is shown. The first country is not shown, and its
+ * clock does not run, until the globe has drawn the map. The rules are
+ * `gameReducer`'s.
  */
 export const GameScreen = ({
   world,
@@ -123,7 +124,19 @@ export const GameScreen = ({
           {t('game.counter', { n: game.index + 1, total: game.questionIds.length })}
         </span>
         <div className="game__question">
-          {shown && verdict ? (
+          {askedAt === null ? (
+            // Nothing to read until the map is drawn. Blank lines of the same
+            // size, so the header keeps its height and the globe is not
+            // resized when the question appears.
+            <>
+              <p className="game__prompt" aria-hidden="true">
+                &nbsp;
+              </p>
+              <strong className="game__target" aria-hidden="true">
+                &nbsp;
+              </strong>
+            </>
+          ) : shown && verdict ? (
             <p
               className={`game__verdict game__verdict--${verdict}`}
               data-testid="game-verdict"
@@ -143,9 +156,11 @@ export const GameScreen = ({
           ) : (
             <p className="game__prompt">{t('game.prompt')}</p>
           )}
-          <strong className="game__target" data-testid="game-target" data-id={targetId}>
-            {nameOf(targetId)}
-          </strong>
+          {askedAt !== null && (
+            <strong className="game__target" data-testid="game-target" data-id={targetId}>
+              {nameOf(targetId)}
+            </strong>
+          )}
         </div>
         <span className="game__score" data-testid="game-score">
           {t('game.score', { score: score(game) })}
