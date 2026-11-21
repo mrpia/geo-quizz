@@ -1,0 +1,43 @@
+/**
+ * The reference dictionary: `TranslationKey` is derived from its keys, and a
+ * test holds `de` and `en` to the same keys and the same `{placeholders}`.
+ * Country names are not here; they come from the data file (`countryName`).
+ */
+export const fr = {
+  'common.backToHomeAria': "retour à l'accueil",
+  'common.home': 'Accueil',
+  'common.loading': 'Chargement de la carte…',
+  'common.loadError': "La carte n'a pas pu être chargée.",
+  'home.continentTitle': 'Choisis un continent',
+  'home.summary': '{count} pays · {seconds} s par pays',
+  'home.summaryOne': '1 pays · {seconds} s',
+  'home.start': 'Lancer',
+  'home.settingsAria': 'paramètres',
+  'continent.europe': 'Europe',
+  'continent.africa': 'Afrique',
+  'continent.asia': 'Asie',
+  'continent.north-america': 'Amérique du Nord',
+  'continent.south-america': 'Amérique du Sud',
+  'continent.oceania': 'Océanie',
+  'game.counter': '{n} / {total}',
+  'game.prompt': 'Trouve ce pays :',
+  'game.score': 'Score : {score}',
+  'game.quitAria': 'arrêter la partie',
+  'game.correct': 'Bravo !',
+  'game.wrong': 'Tu as touché : {country}',
+  'game.timeUp': 'Temps écoulé !',
+  'countdown.aria': 'temps restant',
+  'globe.recentreAria': 'recentrer le globe',
+  'results.title': 'Bilan',
+  'results.score': '{score} / {total}',
+  'results.correctAria': 'juste',
+  'results.wrongAria': 'faux',
+  'results.timeUp': 'temps écoulé',
+  'results.seconds': '{seconds} s',
+  'results.playAgain': 'Rejouer',
+  'settings.title': 'Paramètres',
+  'settings.secondsPerQuestion': 'Secondes par pays',
+  'settings.countriesPerRound': 'Pays par partie',
+  'settings.language': 'Langue',
+  'settings.save': 'Enregistrer',
+};
