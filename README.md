@@ -33,6 +33,42 @@ file is committed.
 install chromium`. The globe is WebGL, which headless Chromium draws in
 software, so the suite is slow on purpose and stays small.
 
+## Deploy
+
+The app is a static bundle on **Firebase Hosting**: site `geo-quizz-mrpia`
+in project `modern-ally-102412` (the same project as math-quizz, which uses
+the project's default site), served at https://geo-quizz.mrpia.ch with a
+Google-managed certificate. Deploying needs `firebase-tools` installed and
+logged in:
+
+```sh
+pnpm ship       # = pnpm build && firebase deploy --only hosting
+```
+
+`firebase.json` caches the content-hashed files under `/assets/` (the map
+data included) for a year and makes the browser revalidate `/` and
+`/index.html` on every load. It has no SPA rewrite: the app has no routes,
+so an unknown path gets a 404. `vite preview` does not apply `firebase.json`;
+check the headers on the live site with `curl -I`.
+
+The DNS record for `geo-quizz.mrpia.ch` lives at the `mrpia.ch` registrar
+and is the one the Firebase console shows under Hosting → the site → custom
+domains.
+
+### Deploying a fork
+
+Three files carry the identity of this deployment:
+
+| File | What to change |
+|---|---|
+| [`src/config/site.ts`](src/config/site.ts) | the site, author, source and support URLs |
+| `.firebaserc` | your Firebase project id |
+| `firebase.json` | `hosting.site`, your Hosting site id (or delete the line to use the project's default site) |
+
+`pnpm test` fails if a file under `src/` hard-codes one of the URLs in
+`site.ts`. Nothing checks the two Firebase files. Without Firebase, the
+`dist/` folder can be served by any static host.
+
 ## Map data
 
 Country shapes and names come from [Natural Earth](https://www.naturalearthdata.com/)
