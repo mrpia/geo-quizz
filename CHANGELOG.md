@@ -28,5 +28,17 @@ All notable changes to this project are documented here. The format follows
   zoom gets a ring.
 - French, German and English UI strings, continent names, and country names
   from the data file.
+- The 3D globe (globe.gl, loaded only when it is first shown): the chosen
+  continent's countries in seven colours, other land grey, borders, ocean and
+  atmosphere, no image textures. Turn it by dragging, zoom with pinch or wheel
+  from the whole globe down to telling Sint Maarten from Saint-Martin, and
+  fly back to the continent with the recentre button.
+- Taps: a tap picks the continent's country under the finger or pointer. A
+  drag or a pinch never picks, and neither does the sea or other land.
+  Countries too small to hit at the current zoom get a 44 px ring, and a tap
+  within 26 px of a ring picks that country.
+- A preview page for the globe: pick a continent, tap countries, see the name.
+- End-to-end tests in a real browser (Playwright, Chromium with software
+  WebGL), also in CI.
 
 [Unreleased]: https://github.com/mrpia/geo-quizz/commits/main

@@ -114,5 +114,12 @@ for France, Norway and six disputed or minor features) and these properties:
 | `anchor` | `[lng, lat]` on the feature's land |
 | `names` | `{ en, de, fr }` |
 
+Rings are wound the way [d3-geo](https://d3js.org/d3-geo) expects (exterior
+rings clockwise), and enclaves such as Lesotho, Vatican City and San Marino
+are holes in the country around them. The tap picker (`src/domain/pick.ts`)
+relies on both when it asks d3-geo which country contains a point. The build
+does not enforce the winding; a test does.
+
 `src/domain/world.ts` decodes it; `src/__tests__/world.test.ts` holds the
-committed file to the build's rules and pins the decisions above.
+committed file to the build's rules, pins the decisions above, and checks the
+winding.

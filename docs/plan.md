@@ -36,7 +36,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 
 - [x] **Phase 0 — Foundation**
 - [x] **Phase 1 — Domain, settings, i18n** (no globe, no screens)
-- [ ] **Phase 2 — Globe view**
+- [x] **Phase 2 — Globe view**
 - [ ] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [ ] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (needs the owner for login and DNS)
 
@@ -109,7 +109,49 @@ Pure TypeScript, all of it testable in Vitest. Write each test first.
 
 Done when: everything above has tests; `pnpm test` and `pnpm build` are green.
 
-### Phase 2 — Globe view
+### Phase 2 — Globe view (done)
+
+As built, where it differs from the text below:
+
+- **Taps don't go through `onPolygonClick` or `onGlobeClick`** (items 4–6).
+  globe.gl reports the object under the pointer's last hover raycast, which
+  three-render-objects runs at most every 50 ms (`pointerRaycasterThrottleMs`).
+  Measured on 2026-11-21 with frames at 28 ms: 15 of 24 instant mouse clicks
+  and 14 of 24 instant taps went to the country touched just before. The e2e
+  suite cannot see this, because SwiftShader frames take 300 ms or more.
+  Instead GlobeView tracks the gesture itself (`src/domain/gesture.ts`: one
+  pointer that stays within 10 px of where it went down, measured from that
+  point; a second pointer or a cancel spoils it) and resolves the tap at that
+  moment (`src/domain/pick.ts`): the nearest visible ring within 26 px, else
+  `toGlobeCoords` plus a point-in-polygon test with d3-geo over the
+  continent's countries. Other land and the sea pick nothing, as planned.
+- **Polygon side walls only under raised countries.** Walls under all 1,620
+  shapes made a SwiftShader frame seven times slower (2,280 ms against
+  319 ms); at the base altitude nobody sees them.
+- **Zoom limits** (item 4): altitude 0.02 to 4 in globe radii. Measured in
+  Chromium at 0.03: Sint Maarten and Saint-Martin are about 60 px across each
+  and no longer ringed. Every raised altitude stays below 0.02 (base 0.005,
+  hover and wrong pick 0.01, right answer 0.015), so a camera zoomed right
+  in never ends up inside a raised country.
+- **`screenPoint` returns viewport coordinates**, what `page.mouse.click`
+  takes, and null for a country behind the globe. The hook also has
+  `camera()`, which the spec uses to check `GLOBE_VFOV_DEG` (it is 50).
+- **Launch flags** (item 9): Playwright 1.65.1 already passes
+  `--enable-unsafe-swiftshader`; the config repeats it. The e2e job runs in
+  CI from this phase on (the owner's call on 2026-11-21), moved from Phase 3.
+- **Tablet check** (item 10): moved to Phase 4 by the owner on 2026-11-21.
+  Desktop screenshots at a 1180 × 702 globe area show each continent's
+  mainland at its view, so `CONTINENT_VIEWS` is unchanged.
+- **App is a Phase 2 preview**: continent buttons, the globe, the name of the
+  last pick (shown raised, in green). `e2e/globe.spec.ts` drives it through
+  `continent-*` and `picked`.
+- Bundle: globe.gl, three.js and d3-geo load on demand, 2.0 MB minified
+  (556 KB gzip); the first chunk is 239 KB (76 KB gzip).
+- **Open, for the owner:** the ring rule lets a tap within 26 px of a ring
+  beat a large country underneath. At the Europe view that hands 34.5% of
+  Italy's land to Vatican City or San Marino (area-weighted, measured on
+  2026-11-21); Gambia's ring sits on Senegal, Luxembourg's on Belgium. The
+  plan's rule is built as written.
 
 1. `pnpm add globe.gl` (2.46.x; it brings `three`). Load it with a dynamic
    `import()` inside the component, so the home screen does not wait for
@@ -189,7 +231,11 @@ with a 🏠 back button, then panels).
 - Vitest: screens with `GlobeView` replaced by `vi.mock` with a list of
   buttons, fake timers for the countdown.
 - e2e: play a 3-country round tapping via `screenPoint`; a round with a 3 s
-  timer that runs out. Add the e2e job to CI (copy math-quizz's `ci.yml`).
+  timer that runs out. The CI job exists since Phase 2. `e2e/globe.spec.ts`
+  drives the Phase 2 preview page, so it changes with the screens.
+- The right answer rises by 0.015 globe radii (`ALTITUDE` in
+  `src/components/globeLook.ts`), which is subtle at the continent views.
+  Check that it reads; raising it means raising GlobeView's closest zoom too.
 - Bump to 0.1.0: `package.json`, `CHANGELOG.md`.
 
 Done when: a full round can be played with touch and with a mouse, and both
@@ -215,7 +261,17 @@ Same setup as math-quizz (see its
    registrar. The certificate is provisioned automatically after DNS
    propagates.
 6. Check the live site on the tablet; check the response headers with
-   `curl -I` (`vite preview` does not apply `firebase.json`).
+   `curl -I` (`vite preview` does not apply `firebase.json`). The tablet check
+   carries Phase 2's item 10, moved here on 2026-11-21:
+   - frame rate with all 1,620 shapes and their borders (about 1,620 draw
+     calls for caps plus as many for borders);
+   - each continent's starting view; if one moves,
+     `src/__tests__/view.test.ts` names the countries to add to or drop from
+     `BEYOND_HORIZON`;
+   - taps, drags and pinches: the 10 px tap slop (`TAP_SLOP_PX`), and
+     whether pinch-zooming drifts (globe.gl zooms towards the pointer but
+     keeps the camera aimed at the centre);
+   - tiny countries: rings, and zooming in far enough to tap them.
 
 Done when: https://geo-quizz.mrpia.ch serves the app over HTTPS.
 

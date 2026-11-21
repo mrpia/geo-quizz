@@ -14,6 +14,8 @@ from it unless the owner has moved the idea into a phase.
 ## Commands
 
 - `pnpm dev`, `pnpm test`, `pnpm build` (typecheck + build)
+- `pnpm test:e2e`: Playwright against `vite preview` on 4173 (reuses a
+  server already there, so stop a stale preview before trusting a run)
 - `pnpm data`: regenerate `src/data/world.json` from the pinned Natural Earth
   download (cached in `.cache/`, checked by SHA-256)
 

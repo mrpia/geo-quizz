@@ -35,10 +35,6 @@ button {
   font-family: inherit;
 }
 
-.placeholder {
-  padding: 1.5rem;
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --color-bg: #0f172a;
