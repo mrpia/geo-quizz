@@ -3,9 +3,13 @@ import { CONTINENTS, countriesOf, parseWorld, type WorldTopology } from '../doma
 import {
   BEYOND_HORIZON,
   CONTINENT_VIEWS,
+  GLOBE_VFOV_DEG,
+  TAP_RING_MIN_PX,
   angularDistanceDeg,
   horizonDeg,
   isWithinHorizon,
+  needsTapRing,
+  screenDiameterPx,
 } from '../domain/view';
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
@@ -73,4 +77,59 @@ describe('continent views', () => {
       expect(hidden).toEqual([...BEYOND_HORIZON[continent]].sort());
     },
   );
+});
+
+describe('tap rings', () => {
+  const R_KM = 6371.0088; // the radius tools/build-data.mjs computes areaKm2 with
+  const H = 700;
+  /** The area of a round country whose diameter is `arcRad` radians of arc. */
+  const areaOfArc = (arcRad: number) => Math.PI * ((arcRad * R_KM) / 2) ** 2;
+
+  it("uses globe.gl's vertical field of view of 50°", () => {
+    // three-render-objects builds globe.gl's camera as `new PerspectiveCamera()`,
+    // and three.js defaults `fov` to 50 (vertical, in degrees).
+    expect(GLOBE_VFOV_DEG).toBe(50);
+    // What that means: from `altitude` above the surface, an arc of
+    // 2 · altitude · tan(25°) radians at the view centre spans the full height.
+    for (const altitude of [0.5, 1, 2.5]) {
+      const fillsHeight = areaOfArc(2 * altitude * Math.tan((25 * Math.PI) / 180));
+      expect(screenDiameterPx(fillsHeight, altitude, H)).toBeCloseTo(H, 6);
+    }
+  });
+
+  it('scales with zoom, viewport height and country size', () => {
+    const base = screenDiameterPx(10_000, 1.2, H);
+    expect(screenDiameterPx(10_000, 0.6, H)).toBeCloseTo(2 * base);
+    expect(screenDiameterPx(10_000, 1.2, 2 * H)).toBeCloseTo(2 * base);
+    expect(screenDiameterPx(40_000, 1.2, H)).toBeCloseTo(2 * base);
+  });
+
+  it('rings a country smaller than 24 px', () => {
+    expect(TAP_RING_MIN_PX).toBe(24);
+    const altitude = 1.4;
+    // The area that comes out at exactly 24 px.
+    const limit = 10_000 * (24 / screenDiameterPx(10_000, altitude, H)) ** 2;
+    expect(screenDiameterPx(limit, altitude, H)).toBeCloseTo(24, 6);
+    expect(needsTapRing(limit * 0.99, altitude, H)).toBe(true);
+    expect(needsTapRing(limit * 1.01, altitude, H)).toBe(false);
+  });
+
+  it("rings Luxembourg but not France at globe.gl's starting altitude", () => {
+    const area = (id: string) => world.byId.get(id)?.properties.areaKm2 ?? Number.NaN;
+    expect(needsTapRing(area('LUX'), 2.5, H)).toBe(true);
+    expect(needsTapRing(area('FRA'), 2.5, H)).toBe(false);
+    // Zoomed in far enough, Luxembourg is big enough to tap.
+    expect(needsTapRing(area('LUX'), 0.1, H)).toBe(false);
+  });
+
+  it.each([
+    [-1, 1, H],
+    [Number.NaN, 1, H],
+    [100, 0, H],
+    [100, -1, H],
+    [100, 1, 0],
+    [100, Infinity, H],
+  ])('refuses area %s km², altitude %s, height %s px', (area, altitude, height) => {
+    expect(() => needsTapRing(area, altitude, height)).toThrow(RangeError);
+  });
 });
