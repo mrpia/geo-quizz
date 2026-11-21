@@ -1,5 +1,6 @@
 // `?raw`, not a JSON import: that would make `tsc` infer a type for 761 KiB of
 // coordinates. `node:fs` would work too, but would pull Node's types into src/.
+import { geoArea } from 'd3-geo';
 import raw from '../data/world.json?raw';
 import { CONTINENTS, countriesOf, parseWorld, type WorldTopology } from '../domain/world';
 import { LANGUAGES } from '../i18n/language';
@@ -47,6 +48,17 @@ describe('shipped world data', () => {
       expect(Math.abs(lng), c.id).toBeLessThanOrEqual(180);
       expect(Math.abs(lat), c.id).toBeLessThanOrEqual(90);
     }
+  });
+});
+
+/** What the app relies on beyond the build's own rules (docs/data.md, Output format). */
+describe('shipped world data, as the app reads it', () => {
+  it('winds every shape the way d3-geo expects', () => {
+    // The tap picker (src/domain/pick.ts) asks d3-geo which country contains
+    // a point. d3-geo reads a ring's winding to know which side is inside: a
+    // shape wound the other way would contain the whole world except itself.
+    const inverted = world.countries.filter((c) => geoArea(c) > 2 * Math.PI).map((c) => c.id);
+    expect(inverted).toEqual([]);
   });
 });
 
