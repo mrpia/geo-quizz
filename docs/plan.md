@@ -193,5 +193,5 @@ Done when: https://geo-quizz.mrpia.ch serves the app over HTTPS.
 
 ## Later (not planned yet)
 
-Offline/PWA like math-quizz, a two-player mode, high scores per continent, a
-"sovereign states only" filter (the data already carries `kind`), sounds.
+Ideas beyond Phase 4 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
+there into a phase here once the owner decides to build it.
