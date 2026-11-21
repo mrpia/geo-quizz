@@ -1,13 +1,20 @@
 import { isLanguage, preferredLanguage, type Language } from '../i18n/language';
+import { CONTINENTS, type Continent } from './world';
 
 export type Settings = {
   language: Language;
   secondsPerQuestion: number;
   countriesPerRound: number;
+  /** The continent last played, preselected on the Home screen. */
+  continent: Continent;
 };
 
 export const DEFAULT_SECONDS_PER_QUESTION = 10;
 export const DEFAULT_COUNTRIES_PER_ROUND = 10;
+export const DEFAULT_CONTINENT: Continent = 'europe';
+
+const isContinent = (value: unknown): value is Continent =>
+  typeof value === 'string' && (CONTINENTS as readonly string[]).includes(value);
 
 export const SETTINGS_BOUNDS = {
   secondsPerQuestion: { min: 3, max: 60 },
@@ -22,6 +29,7 @@ export const defaultSettings = (browserLanguages: readonly string[]): Settings =
   language: preferredLanguage(browserLanguages),
   secondsPerQuestion: DEFAULT_SECONDS_PER_QUESTION,
   countriesPerRound: DEFAULT_COUNTRIES_PER_ROUND,
+  continent: DEFAULT_CONTINENT,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -61,5 +69,6 @@ export const sanitizeSettings = (
       SETTINGS_BOUNDS.countriesPerRound,
       defaults.countriesPerRound,
     ),
+    continent: isContinent(raw.continent) ? raw.continent : defaults.continent,
   };
 };

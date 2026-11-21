@@ -1,3 +1,4 @@
+import type { Point } from './gesture';
 import type { Continent } from './world';
 
 /**
@@ -69,6 +70,39 @@ export const horizonDeg = (altitude: number): number => Math.acos(1 / (1 + altit
  */
 export const isWithinHorizon = (view: View, point: LngLat): boolean =>
   angularDistanceDeg([view.lng, view.lat], point) < horizonDeg(view.altitude);
+
+/**
+ * How far inside the canvas edges a point must be to count as shown: about
+ * a fingertip, so an answer is never left half under the edge.
+ */
+export const FRAME_MARGIN_PX = 48;
+
+/**
+ * Whether a point on screen (canvas pixels, null when it is behind the
+ * globe) is shown well inside the canvas. Decides whether the camera flies to
+ * the answer (plan, Phase 3).
+ */
+export const isInFrame = (
+  point: Point | null,
+  size: { width: number; height: number },
+  marginPx: number = FRAME_MARGIN_PX,
+): boolean =>
+  point !== null &&
+  point.x >= marginPx &&
+  point.x <= size.width - marginPx &&
+  point.y >= marginPx &&
+  point.y <= size.height - marginPx;
+
+/**
+ * The view straight over a point, at the altitude the camera already has:
+ * the camera does not reset between questions, so a player who zoomed in
+ * stays zoomed in (plan, Phase 3).
+ */
+export const viewOver = ([lng, lat]: LngLat, current: View): View => ({
+  lat,
+  lng,
+  altitude: current.altitude,
+});
 
 /**
  * Vertical field of view of globe.gl's camera, in degrees. Read from the

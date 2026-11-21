@@ -1,6 +1,6 @@
 import raw from '../data/world.json?raw';
 import { CONTINENTS, parseWorld, type Country, type WorldTopology } from '../domain/world';
-import { continentName, countryName, dictionaries, translate } from '../i18n';
+import { continentName, countryName, dictionaries, formatSeconds, translate } from '../i18n';
 import { fr } from '../i18n/fr';
 import { LANGUAGES, NATIVE_LANGUAGE_NAMES } from '../i18n/language';
 
@@ -122,5 +122,22 @@ describe('countryName', () => {
       properties: { ...che.properties, names: { ...che.properties.names, de: '' } },
     };
     expect(() => countryName(nameless, 'de')).toThrow(/CHE/);
+  });
+});
+
+describe('formatSeconds', () => {
+  it('shows tenths of a second in each language', () => {
+    expect(formatSeconds(2440, 'en')).toBe('2.4');
+    expect(formatSeconds(2440, 'fr')).toBe('2,4');
+    expect(formatSeconds(2440, 'de')).toBe('2,4');
+  });
+
+  it('keeps the tenth on whole seconds, so the column lines up', () => {
+    expect(formatSeconds(10_000, 'en')).toBe('10.0');
+    expect(formatSeconds(0, 'fr')).toBe('0,0');
+  });
+
+  it('throws on a time that is not a time', () => {
+    for (const ms of [-1, Number.NaN, Infinity]) expect(() => formatSeconds(ms, 'en')).toThrow(/time/);
   });
 });

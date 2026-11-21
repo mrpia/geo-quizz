@@ -72,17 +72,50 @@ describe('resolving a tap', () => {
     expect(resolveTap(project([-30, 45]), { rings: [], view, project, unproject, locate })).toBeNull();
   });
 
-  it('lets a ring win over the country underneath', () => {
-    // Vatican's ring is drawn over Rome; a tap 20 px off its centre lands on
-    // Italy but still picks Vatican City.
-    const tap = { x: at('VAT').x + 20, y: at('VAT').y };
-    expect(locate(unproject(tap))?.id).toBe('ITA');
-    expect(resolveTap(tap, { rings: ringsOf('VAT'), view, project, unproject, locate })).toBe('VAT');
+  // The owner's rule of 2026-11-21 (PR #3 had a ring win anywhere within
+  // 26 px, which handed a third of Italy to Vatican City and San Marino).
+  describe('over a country big enough to tap', () => {
+    it("lets a ring win only within its bullseye", () => {
+      // Vatican's ring is drawn over Rome; 8 px off its centre is Italy.
+      const tap = { x: at('VAT').x + 8, y: at('VAT').y };
+      expect(locate(unproject(tap))?.id).toBe('ITA');
+      expect(resolveTap(tap, { rings: ringsOf('VAT'), view, project, unproject, locate })).toBe('VAT');
+    });
+
+    it('gives the rest of the drawn ring to the country underneath', () => {
+      for (const dx of [11, 20, 25]) {
+        const tap = { x: at('VAT').x + dx, y: at('VAT').y };
+        expect(resolveTap(tap, { rings: ringsOf('VAT'), view, project, unproject, locate }), `${dx} px`).toBe('ITA');
+      }
+    });
   });
 
-  it('lets the country win once the tap is outside every ring', () => {
-    const tap = { x: at('VAT').x + 30, y: at('VAT').y };
-    expect(resolveTap(tap, { rings: ringsOf('VAT'), view, project, unproject, locate })).toBe('ITA');
+  it('lets a ring win anywhere within 26 px over the sea', () => {
+    // Malta: 20 px east of its anchor is the open sea.
+    const tap = { x: at('MLT').x + 20, y: at('MLT').y };
+    expect(locate(unproject(tap))).toBeNull();
+    expect(resolveTap(tap, { rings: ringsOf('MLT'), view, project, unproject, locate })).toBe('MLT');
+    const beyond = { x: at('MLT').x + 27, y: at('MLT').y };
+    expect(resolveTap(beyond, { rings: ringsOf('MLT'), view, project, unproject, locate })).toBeNull();
+  });
+
+  it('lets a ring win anywhere within 26 px over land outside the round', () => {
+    // Only the continent's countries can be found, so another continent's
+    // land counts as nothing underneath, like the sea.
+    const elsewhere = () => null;
+    const tap = { x: at('VAT').x + 20, y: at('VAT').y };
+    expect(resolveTap(tap, { rings: ringsOf('VAT'), view, project, unproject, locate: elsewhere })).toBe('VAT');
+  });
+
+  it('lets the nearest ring win within 26 px over a country that has a ring of its own', () => {
+    // A tap on San Marino's land that is nearer Vatican's ring: both are too
+    // small to hit, so the rings decide, as before.
+    const sanMarino = world.byId.get('SMR')!;
+    const onSanMarino = () => sanMarino;
+    const tap = { x: at('VAT').x + 20, y: at('VAT').y };
+    expect(
+      resolveTap(tap, { rings: ringsOf('VAT', 'SMR'), view, project, unproject, locate: onSanMarino }),
+    ).toBe('VAT');
   });
 
   it('ignores rings on the far side of the globe', () => {

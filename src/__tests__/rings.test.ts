@@ -1,6 +1,12 @@
 import raw from '../data/world.json?raw';
 import { countriesOf, parseWorld, type WorldTopology } from '../domain/world';
-import { RING_DIAMETER_PX, RING_HIT_PX, nearestRing, ringedIds } from '../domain/rings';
+import {
+  RING_BULLSEYE_PX,
+  RING_DIAMETER_PX,
+  RING_HIT_PX,
+  nearestRing,
+  ringedIds,
+} from '../domain/rings';
 import { CONTINENT_VIEWS } from '../domain/view';
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
@@ -31,6 +37,13 @@ describe('which countries get a ring', () => {
     expect(RING_DIAMETER_PX).toBe(44);
     expect(RING_HIT_PX).toBe(26);
   });
+
+  it('keeps a bullseye well inside the drawn ring', () => {
+    // The owner's rule of 2026-11-21: over a country big enough to tap, only
+    // the bullseye of a ring beats it.
+    expect(RING_BULLSEYE_PX).toBe(10);
+    expect(RING_BULLSEYE_PX).toBeLessThan(RING_DIAMETER_PX / 2);
+  });
 });
 
 describe('nearest ring', () => {
@@ -54,6 +67,12 @@ describe('nearest ring', () => {
     expect(nearestRing(rings, { x: 100, y: 126.01 })).toBeNull();
     expect(nearestRing(rings, { x: 74, y: 100 })).toBe('VAT');
     expect(nearestRing(rings, { x: 73.9, y: 100 })).toBeNull();
+  });
+
+  it('reaches only as far as it is told', () => {
+    expect(nearestRing(rings, { x: 100, y: 110 }, 10)).toBe('VAT');
+    expect(nearestRing(rings, { x: 100, y: 110.01 }, 10)).toBeNull();
+    expect(nearestRing(rings, { x: 100, y: 120 }, 10)).toBeNull();
   });
 
   it('finds nothing when there are no rings', () => {

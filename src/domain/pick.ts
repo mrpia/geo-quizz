@@ -1,6 +1,6 @@
 import { geoBounds, geoContains } from 'd3-geo';
 import type { Point } from './gesture';
-import { nearestRing } from './rings';
+import { RING_BULLSEYE_PX, RING_HIT_PX, nearestRing } from './rings';
 import { isWithinHorizon, type LngLat, type View } from './view';
 import type { Country } from './world';
 
@@ -54,17 +54,22 @@ export type TapContext = {
 };
 
 /**
- * Which country a tap picks (plan, Phase 2 items 5 and 6): the nearest ring
- * on the visible side within `RING_HIT_PX` wins over whatever lies under the
- * pointer; otherwise the country under it, if it is in play.
+ * Which country a tap picks. The country under the pointer, if it is in
+ * play, unless a ring on the visible side is close enough:
+ *
+ * - over a country big enough to tap (one without a ring of its own), a ring
+ *   wins only within `RING_BULLSEYE_PX` of its centre, so a ring drawn over
+ *   Rome does not take a third of Italy (the owner's rule, 2026-11-21);
+ * - over the sea, other land, or a country that has a ring itself, the
+ *   nearest ring within `RING_HIT_PX` wins (plan, Phase 2 item 6).
  */
 export const resolveTap = (tap: Point, context: TapContext): string | null => {
   const { rings, view, project, unproject, locate } = context;
+  const point = unproject(tap);
+  const under = point ? locate(point) : null;
+  const tappable = under !== null && !rings.some((ring) => ring.id === under.id);
   const visible = rings
     .filter((ring) => isWithinHorizon(view, ring.anchor))
     .map((ring) => ({ id: ring.id, ...project(ring.anchor) }));
-  const ring = nearestRing(visible, tap);
-  if (ring) return ring;
-  const point = unproject(tap);
-  return point ? (locate(point)?.id ?? null) : null;
+  return nearestRing(visible, tap, tappable ? RING_BULLSEYE_PX : RING_HIT_PX) ?? under?.id ?? null;
 };

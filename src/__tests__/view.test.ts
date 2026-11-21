@@ -3,13 +3,16 @@ import { CONTINENTS, countriesOf, parseWorld, type WorldTopology } from '../doma
 import {
   BEYOND_HORIZON,
   CONTINENT_VIEWS,
+  FRAME_MARGIN_PX,
   GLOBE_VFOV_DEG,
   TAP_RING_MIN_PX,
   angularDistanceDeg,
   horizonDeg,
+  isInFrame,
   isWithinHorizon,
   needsTapRing,
   screenDiameterPx,
+  viewOver,
 } from '../domain/view';
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
@@ -131,5 +134,42 @@ describe('tap rings', () => {
     [100, Infinity, H],
   ])('refuses area %s km², altitude %s, height %s px', (area, altitude, height) => {
     expect(() => needsTapRing(area, altitude, height)).toThrow(RangeError);
+  });
+});
+
+// Plan, Phase 3: after a wrong tap or a timeout, "if the target is off-screen
+// the camera flies to it".
+describe('showing the answer', () => {
+  const size = { width: 1000, height: 600 };
+
+  it('counts a point inside the canvas, clear of the edges, as in frame', () => {
+    expect(isInFrame({ x: 500, y: 300 }, size)).toBe(true);
+    expect(isInFrame({ x: FRAME_MARGIN_PX, y: FRAME_MARGIN_PX }, size)).toBe(true);
+    expect(isInFrame({ x: 1000 - FRAME_MARGIN_PX, y: 600 - FRAME_MARGIN_PX }, size)).toBe(true);
+  });
+
+  it('counts a point outside the canvas or hugging its edge as out of frame', () => {
+    expect(isInFrame({ x: -20, y: 300 }, size)).toBe(false);
+    expect(isInFrame({ x: 500, y: 640 }, size)).toBe(false);
+    expect(isInFrame({ x: FRAME_MARGIN_PX - 1, y: 300 }, size)).toBe(false);
+    expect(isInFrame({ x: 500, y: 600 - FRAME_MARGIN_PX + 1 }, size)).toBe(false);
+  });
+
+  it('counts a point behind the globe as out of frame', () => {
+    expect(isInFrame(null, size)).toBe(false);
+  });
+
+  it('keeps a margin of about a fingertip', () => {
+    expect(FRAME_MARGIN_PX).toBe(48);
+  });
+
+  it('flies over the answer at the altitude the player chose', () => {
+    // The camera does not reset between questions, so a player who zoomed in
+    // stays zoomed in (plan, Phase 3).
+    expect(viewOver([-17.4, 14.7], { lat: 2, lng: 15, altitude: 0.3 })).toEqual({
+      lat: 14.7,
+      lng: -17.4,
+      altitude: 0.3,
+    });
   });
 });

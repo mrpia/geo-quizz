@@ -107,3 +107,10 @@ export const gameReducer = (state: GameState, event: GameEvent): GameState => {
 
 export const score = (state: GameState): number =>
   state.answers.filter((a) => a.correct).length;
+
+/**
+ * How long an answer stays on screen before the next question (plan,
+ * Phase 3): 1 s after a right answer, 2.5 s after a wrong one or a timeout,
+ * long enough to find the answer on the globe.
+ */
+export const feedbackMs = (answer: Answer): number => (answer.correct ? 1_000 : 2_500);

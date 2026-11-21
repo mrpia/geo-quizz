@@ -12,6 +12,15 @@ export const RING_DIAMETER_PX = 44;
  */
 export const RING_HIT_PX = 26;
 
+/**
+ * How far from a ring's centre a tap still picks it when it lands on a
+ * country that is big enough to tap: that country keeps the rest of the
+ * ring. Decided by the owner on 2026-11-21, after a 26 px reach everywhere
+ * handed 34.5% of Italy's land to Vatican City or San Marino at the Europe
+ * view (docs/plan.md, Phase 2).
+ */
+export const RING_BULLSEYE_PX = 10;
+
 /** The ids of the countries too small to tap at this zoom, in the given order. */
 export const ringedIds = (
   countries: readonly Country[],
@@ -26,13 +35,17 @@ export const ringedIds = (
 export type RingPoint = Point & { id: string };
 
 /**
- * The ring whose centre is nearest the pointer, if it is within
- * `RING_HIT_PX`. The caller passes only rings on the visible side of the
- * globe. On a tie the first one wins.
+ * The ring whose centre is nearest the pointer, if it is within `reachPx`.
+ * The caller passes only rings on the visible side of the globe. On a tie
+ * the first one wins.
  */
-export const nearestRing = (rings: readonly RingPoint[], pointer: Point): string | null => {
+export const nearestRing = (
+  rings: readonly RingPoint[],
+  pointer: Point,
+  reachPx: number = RING_HIT_PX,
+): string | null => {
   let best: string | null = null;
-  let bestDistance = RING_HIT_PX;
+  let bestDistance = reachPx;
   for (const ring of rings) {
     const distance = Math.hypot(ring.x - pointer.x, ring.y - pointer.y);
     if (distance < bestDistance || (best === null && distance === bestDistance)) {
