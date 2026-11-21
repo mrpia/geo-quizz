@@ -8,7 +8,8 @@ this file says otherwise.
 **Start here:** `docs/plan.md` lists the phases, the decisions already taken
 with the owner, and what each phase must deliver. Do the next unticked phase,
 on a branch, as one PR, and tick it off in that PR. `docs/data.md` covers the
-map data.
+map data. `BACKLOG.md` collects ideas that are wanted but not planned; don't build
+from it unless the owner has moved the idea into a phase.
 
 ## Commands
 
