@@ -2,36 +2,34 @@
 
 Ideas that are wanted but not planned yet. Nothing here gets built until it
 moves into a phase of [docs/plan.md](docs/plan.md). The notes under each idea
-are questions to settle at that point, not decisions.
+are questions to settle at that point, unless they are marked as agreed.
 
-## Multiplayer, 2 to 4 players on one device
+## Game modes
+
+### Multiplayer, 2 to 4 players on one device
 
 Players take turns on the same tablet or computer. Each turn asks that player
 their own country, so everyone stays gathered around the screen.
 
+Agreed with the owner on 2026-11-21:
+
 - A "your turn, Lena" screen before each question, with a tap to start, so the
   countdown never runs while the next player is still getting into position.
-- Reset the camera to the continent view at every turn. In single player the
-  camera stays where the player left it; here the next player would inherit
-  someone else's zoom.
-- Draw without repetition across all players, so nobody is asked a country
-  that was just revealed on someone else's turn. Same number of questions per
-  player.
-- Needs player names (and probably a colour each), a score per player, a
-  ranking on the results screen, and a rule for ties.
+- The camera resets to the continent view at every turn. In single player it
+  stays where the player left it; here the next player would inherit someone
+  else's zoom.
+- Countries are drawn without repetition across all players, so nobody is
+  asked a country that was just revealed on someone else's turn. Every player
+  gets the same number of questions.
+
+Still open:
+
+- Player names (and probably a colour each), a score per player, a ranking on
+  the results screen, and a rule for ties.
 - The Phase 1 game reducer handles one player. Extending it with a "current
   player" is the expected route; no need to build for it earlier.
 
-## High-score page
-
-- Scores only compare under the same rules: 10/10 with 30 seconds is not
-  10/10 with 5. Either keep one table per continent, timer and round size, or
-  record only rounds played at the default settings, or score by speed (see
-  below, if that idea is taken).
-- Local to the device (localStorage), like everything else. A name on each
-  entry once several children share the tablet, and a way to clear the table.
-
-## Full-world mode
+### Full-world mode
 
 All 241 places (everything but Antarctica) on the whole globe, as a seventh
 choice next to the continents.
@@ -41,24 +39,7 @@ choice next to the continents.
   neutral view or from wherever the camera is.
 - Tap rings appear all over the world at that zoom level.
 
-## Up-to-date geo-data
-
-Checked on 2026-11-21: Natural Earth's latest release is still
-[v5.1.2 of 2022-05-13](https://github.com/nvkelso/natural-earth-vector/releases),
-and the repository's last commit is from 2022-06-02. Downloading the latest
-Natural Earth gives exactly the file we ship. Being more current means a
-different or additional source.
-
-- At build time, not in the app. The build is where the name corrections and
-  the checks in `tools/build-data.mjs` run; data downloaded by the app at
-  runtime would skip all of them and break offline use.
-- Sources to evaluate, licence first: geoBoundaries, OpenStreetMap-derived
-  country boundaries (ODbL, with share-alike terms), or a newer Natural Earth
-  release if one ever appears.
-- Cheap first step: a scheduled CI job that opens an issue when Natural Earth
-  publishes a release newer than the pinned one.
-
-## Easy mode
+### Easy mode
 
 Fewer, easier places.
 
@@ -72,7 +53,90 @@ Fewer, easier places.
 - Maybe a longer default timer too.
 - Check per continent that enough places remain for a round.
 
-## Show the country's flag on a correct pick
+### Explore mode
+
+No timer and no score: tap any country to see its name, and its flag once
+flags exist. For learning a continent before being tested on it.
+
+- Reuses the globe and the data; a tap shows a label instead of judging an
+  answer.
+- Show the name in the UI language only, or in all three? Useful in a
+  bilingual family or class.
+
+### Pick the name
+
+The globe highlights a country and the player picks its name from four
+choices. Easier for children who read slowly or don't know the shapes yet.
+
+- The wrong choices should be plausible: neighbours, or at least countries of
+  the same continent.
+
+### Capitals
+
+"Where is Bern?": find the country a capital belongs to (or the city itself).
+
+- Natural Earth's populated-places layer marks national capitals: 202 places
+  with `featurecla` "Admin-0 capital" at 1:50m, Bern correctly flagged for
+  Switzerland (checked 2026-11-21). 13 more are marked "Admin-0 capital alt";
+  decide how a country with more than one capital is asked.
+- The simple 1:50m places file has English and local names only. French and
+  German names need another field or source.
+- Tap the country, or tap a point for the city? The second needs city markers
+  on the globe.
+
+### Swiss cantons
+
+A map of Switzerland with its 26 cantons, for a Swiss school.
+
+- More a second game than a mode: a close-up map instead of the globe, and
+  new data.
+- Sources to evaluate, licence first: Natural Earth's 1:10m admin-1 layer and
+  swisstopo's open data.
+- Canton names in FR, DE and EN; several cantons have official names in more
+  than one language.
+
+## Scoring and progress
+
+### High-score page
+
+Local to the device (localStorage), like everything else, with a name on each
+entry once several children share the tablet, and a way to clear the table.
+
+Scores only compare under the same rules: 10/10 with 30 seconds is not 10/10
+with 5. One of these has to be chosen:
+
+- one table per continent, timer and round size;
+- record only rounds played at the default settings;
+- score by speed (see **Speed points**), which still needs one table per
+  continent and round size.
+
+### Speed points
+
+Score by the time left instead of one point per correct answer, for example
+up to 100 per question.
+
+- An option, not the default: speed pressure can put off younger children.
+- Makes high scores fairer between quick and slow correct answers.
+
+### Practise the misses
+
+- First step: a "replay the ones I missed" button on the results screen, a
+  round made of exactly the countries missed.
+- Later: rounds that favour countries missed recently, like math-quizz's
+  recency-weighted draw (`src/domain/stats.ts` there; weights decay per
+  session, never by clock time). Needs an answer history in localStorage.
+- With multiplayer, the history belongs to a player, so player names would
+  have to persist.
+
+### Hint
+
+Halfway through the countdown, the camera turns toward the target's region; a
+correct answer after the hint earns half a point (with speed points, the hint
+costs points instead).
+
+## Presentation
+
+### Show the country's flag on a correct pick
 
 - Candidate source: [flag-icons](https://github.com/lipis/flag-icons), MIT,
   one SVG per ISO 3166-1 alpha-2 code. `world.json` doesn't carry that code
@@ -84,14 +148,17 @@ Fewer, easier places.
   load.
 - Emoji flags would cost nothing, but Windows doesn't draw country-flag emoji
   and shows two letters instead, so they fail on a desktop PC.
-- Also on the results screen, and when the answer is revealed after a miss?
+- Also on the results screen, in explore mode, and when the answer is
+  revealed after a miss?
 
-## Offline use (PWA)
-
-Install to the home screen and play without a connection, like math-quizz.
-Carried over from the plan's "later" list.
-
-## Sounds
+### Sounds
 
 A sound for a correct answer, a miss and the timeout. Carried over from the
 plan's "later" list.
+
+## Platform
+
+### Offline use (PWA)
+
+Install to the home screen and play without a connection, like math-quizz.
+Carried over from the plan's "later" list.

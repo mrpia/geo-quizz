@@ -153,6 +153,10 @@ with a 🏠 back button, then panels).
     which country was tapped; if the target is off-screen the camera flies to
     it; next after 2.5 s;
   - timeout: the target turns green (fly-to as above); next after 2.5 s;
+  - never colour alone: green and red are the pair colour-blind players most
+    often confuse. The header also shows ✓ or ✗, the results rows use ✓/✗,
+    and on the globe the target is raised (higher `polygonAltitude`), not
+    only recoloured;
   - the countdown pauses during feedback. The camera does not reset between
     questions, so a player who zoomed in stays zoomed.
 - **Results**: "7 / 10", one row per question (✓/✗, target, what was tapped or
