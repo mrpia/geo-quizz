@@ -16,6 +16,41 @@
   inset: 0;
 }
 
+/*
+ * The answer's outline (src/domain/outline.ts): a thick white line with a
+ * faint glow, the cue that does not depend on colour. Over the canvas, under
+ * the rings, and transparent to pointers so the globe still turns.
+ */
+.globe__outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.globe__outline path {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.globe__outline-line {
+  stroke-width: 3.5px;
+}
+
+.globe__outline-glow {
+  stroke-width: 8px;
+  stroke-opacity: 0.35;
+}
+
+.globe__outline-glow--wide {
+  stroke-width: 14px;
+  stroke-opacity: 0.15;
+}
+
 .globe__status {
   position: absolute;
   inset: 0;

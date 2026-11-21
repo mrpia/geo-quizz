@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CONTINENT,
   DEFAULT_COUNTRIES_PER_ROUND,
   DEFAULT_SECONDS_PER_QUESTION,
   SETTINGS_BOUNDS,
@@ -31,13 +32,15 @@ describe('preferredLanguage', () => {
 });
 
 describe('defaultSettings', () => {
-  it('asks 10 countries with 10 seconds each, in the browser language', () => {
+  it('asks 10 countries of Europe with 10 seconds each, in the browser language', () => {
     expect(DEFAULT_SECONDS_PER_QUESTION).toBe(10);
     expect(DEFAULT_COUNTRIES_PER_ROUND).toBe(10);
+    expect(DEFAULT_CONTINENT).toBe('europe');
     expect(defaultSettings(['de-CH'])).toEqual({
       language: 'de',
       secondsPerQuestion: 10,
       countriesPerRound: 10,
+      continent: 'europe',
     });
   });
 });
@@ -46,7 +49,7 @@ describe('sanitizeSettings', () => {
   const browser = ['fr-CH'];
 
   it('keeps valid settings as they are', () => {
-    const valid = { language: 'en', secondsPerQuestion: 25, countriesPerRound: 42 };
+    const valid = { language: 'en', secondsPerQuestion: 25, countriesPerRound: 42, continent: 'oceania' };
     expect(sanitizeSettings(valid, browser)).toEqual(valid);
   });
 
@@ -62,6 +65,7 @@ describe('sanitizeSettings', () => {
       language: 'fr',
       secondsPerQuestion: 20,
       countriesPerRound: 10,
+      continent: 'europe',
     });
     expect(
       sanitizeSettings(
@@ -72,6 +76,17 @@ describe('sanitizeSettings', () => {
     expect(
       sanitizeSettings({ secondsPerQuestion: Infinity, countriesPerRound: null }, browser),
     ).toEqual(defaultSettings(browser));
+  });
+
+  it('remembers only a continent the game asks', () => {
+    // The Home screen saves the continent last played (the owner's call,
+    // 2026-11-21). Antarctica is drawn but never asked.
+    for (const continent of ['africa', 'south-america']) {
+      expect(sanitizeSettings({ continent }, browser).continent).toBe(continent);
+    }
+    for (const continent of ['antarctica', 'Europe', 'atlantis', 3, null]) {
+      expect(sanitizeSettings({ continent }, browser).continent).toBe('europe');
+    }
   });
 
   it('clamps numbers to their bounds', () => {
@@ -111,7 +126,12 @@ describe('settingsStore', () => {
   });
 
   it('round-trips settings through localStorage', () => {
-    const settings = { language: 'fr', secondsPerQuestion: 7, countriesPerRound: 20 } as const;
+    const settings = {
+      language: 'fr',
+      secondsPerQuestion: 7,
+      countriesPerRound: 20,
+      continent: 'asia',
+    } as const;
     saveSettings(settings, browser);
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual(settings);
     expect(loadSettings(browser)).toEqual(settings);
@@ -132,11 +152,15 @@ describe('settingsStore', () => {
   });
 
   it('sanitizes what it writes', () => {
-    saveSettings({ language: 'en', secondsPerQuestion: 1.2, countriesPerRound: 99 }, browser);
+    saveSettings(
+      { language: 'en', secondsPerQuestion: 1.2, countriesPerRound: 99, continent: 'africa' },
+      browser,
+    );
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual({
       language: 'en',
       secondsPerQuestion: 3,
       countriesPerRound: 50,
+      continent: 'africa',
     });
   });
 

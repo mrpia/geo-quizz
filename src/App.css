@@ -1,61 +1,25 @@
-/* Phase 2 preview layout; Phase 3 replaces it with the screens. */
-
-.preview {
-  display: flex;
-  flex-direction: column;
+.app {
   height: 100%;
 }
 
-.preview__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  padding: 0.75rem 1rem;
-}
-
-.preview__title {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.preview__continents {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.preview__continents button {
-  min-height: 44px;
-  padding: 0 1rem;
-  border: 2px solid var(--color-accent);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-fg);
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.preview__continents button[aria-pressed='true'] {
-  background: var(--color-accent);
-  color: #fff;
-}
-
-.preview__picked {
-  margin-left: auto;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.preview__globe {
+/* The map is still loading, or could not be loaded. */
+.app__status {
   position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-.preview__status {
   display: grid;
   place-items: center;
   height: 100%;
-  margin: 0;
+  font-size: 1.25rem;
+}
+
+.app__home {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid var(--color-chip-border);
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  font-size: 1.4rem;
+  cursor: pointer;
 }

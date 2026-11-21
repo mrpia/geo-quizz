@@ -1,5 +1,6 @@
 import {
   currentTargetId,
+  feedbackMs,
   gameReducer,
   score,
   startGame,
@@ -146,5 +147,15 @@ describe('currentTargetId', () => {
   it('throws once the round is finished', () => {
     const finished = play(start(['FRA']), TIMEOUT, NEXT);
     expect(() => currentTargetId(finished)).toThrow(/finished/);
+  });
+});
+
+describe('feedback', () => {
+  // Plan, Phase 3: the next question comes 1 s after a right answer, and
+  // 2.5 s after a wrong one or a timeout, to leave time to see the answer.
+  it('pauses 1 s after a right answer and 2.5 s otherwise', () => {
+    expect(feedbackMs({ targetId: 'FRA', pickedId: 'FRA', correct: true, elapsedMs: 900 })).toBe(1_000);
+    expect(feedbackMs({ targetId: 'FRA', pickedId: 'DEU', correct: false, elapsedMs: 900 })).toBe(2_500);
+    expect(feedbackMs({ targetId: 'FRA', pickedId: null, correct: false, elapsedMs: 10_000 })).toBe(2_500);
   });
 });

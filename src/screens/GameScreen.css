@@ -1,0 +1,87 @@
+/* The header, the countdown, and the globe in all the space left (plan, Phase 3). */
+.game {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.game__bar {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.6rem 1rem;
+}
+
+.game__quit {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 2px solid var(--color-chip-border);
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  color: var(--color-fg);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.game__counter,
+.game__score {
+  color: var(--color-fg-muted);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.game__question {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.game__prompt,
+.game__verdict {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.game__prompt {
+  color: var(--color-fg-muted);
+}
+
+.game__verdict {
+  font-weight: 700;
+}
+
+.game__verdict--correct {
+  color: var(--color-success-ink);
+}
+
+.game__verdict--wrong,
+.game__verdict--timeout {
+  color: var(--color-error-ink);
+}
+
+.game__mark {
+  font-size: 1.15rem;
+}
+
+.game__target {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game__globe {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}

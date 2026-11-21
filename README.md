@@ -9,8 +9,9 @@ in the settings.
 French, German and English. Everything runs in the browser: no account, no
 server, nothing sent anywhere.
 
-**Status:** under construction. See [docs/plan.md](docs/plan.md) for the
-phases and what is done. It will be live at https://geo-quizz.mrpia.ch.
+**Status:** playable since 0.1.0, not online yet. See
+[docs/plan.md](docs/plan.md) for the phases and what is done. It will be live
+at https://geo-quizz.mrpia.ch.
 
 ## Development
 

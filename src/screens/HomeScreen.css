@@ -1,0 +1,30 @@
+.home__continents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* Large targets for a finger: the continent is the main choice on this screen. */
+.home__continent {
+  min-height: 4.5rem;
+  padding: 0.75rem;
+  border: 2px solid var(--color-chip-border);
+  border-radius: 16px;
+  background: var(--color-card-bg);
+  color: var(--color-fg);
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home__continent[aria-checked='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.home__summary {
+  margin: 0;
+  color: var(--color-fg-muted);
+  text-align: center;
+}

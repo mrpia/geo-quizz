@@ -38,3 +38,11 @@ export const countryName = (country: Country, lang: Language): string => {
   if (!name) throw new Error(`i18n: ${country.id} has no ${lang} name`);
   return name;
 };
+
+/** A time in seconds with one decimal, in the language's own notation ("2.4", "2,4"). */
+export const formatSeconds = (ms: number, lang: Language): string => {
+  if (!(Number.isFinite(ms) && ms >= 0)) throw new Error(`formatSeconds: bad time ${ms}`);
+  return new Intl.NumberFormat(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+    ms / 1000,
+  );
+};
