@@ -125,6 +125,7 @@ describe('GameScreen: feedback', () => {
     expect(verdict()).toHaveAttribute('data-verdict', 'correct');
     expect(verdict()).toHaveTextContent('✓');
     expect(verdict()).toHaveTextContent('Well done!');
+    expect(verdict()).toHaveAttribute('data-picked', first);
     expect(globe()).toHaveAttribute('data-correct', first);
     expect(globe()).toHaveAttribute('data-correct-color', RIGHT_COLOR);
     expect(globe()).toHaveAttribute('data-picked', '');
@@ -146,6 +147,8 @@ describe('GameScreen: feedback', () => {
     expect(verdict()).toHaveAttribute('data-verdict', 'wrong');
     expect(verdict()).toHaveTextContent('✗');
     expect(verdict()).toHaveTextContent(`You tapped ${nameOf(wrong)}`);
+    // For the e2e specs, which never read text: the language is a setting.
+    expect(verdict()).toHaveAttribute('data-picked', wrong);
     // The question stays, so the player can find it on the globe.
     expect(screen.getByTestId('game-target')).toHaveTextContent(nameOf(first));
     expect(globe()).toHaveAttribute('data-picked', wrong);
@@ -166,6 +169,7 @@ describe('GameScreen: feedback', () => {
     expect(verdict()).toHaveAttribute('data-verdict', 'timeout');
     expect(verdict()).toHaveTextContent('✗');
     expect(verdict()).toHaveTextContent("Time's up!");
+    expect(verdict()).toHaveAttribute('data-picked', '');
     expect(globe()).toHaveAttribute('data-correct', first);
     expect(globe()).toHaveAttribute('data-picked', '');
     advance(2_500);

@@ -124,7 +124,12 @@ export const GameScreen = ({
         </span>
         <div className="game__question">
           {shown && verdict ? (
-            <p className={`game__verdict game__verdict--${verdict}`} data-testid="game-verdict" data-verdict={verdict}>
+            <p
+              className={`game__verdict game__verdict--${verdict}`}
+              data-testid="game-verdict"
+              data-verdict={verdict}
+              data-picked={shown.pickedId ?? ''}
+            >
               {/* The mark says right or wrong; the colour only repeats it. */}
               <span className="game__mark" aria-hidden="true">
                 {shown.correct ? '✓' : '✗'}
