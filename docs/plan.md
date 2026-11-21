@@ -224,8 +224,8 @@ As built, where it differs from the text below:
   (`src/domain/outline.ts`). three-globe's wide lines (`pathStroke`) were
   tried first: their translucent glow piles up where the border's vertices
   crowd, and parts of the line broke up. Neither the answer nor the pick
-  rises any more; hover still does, so `ALTITUDE` is down to base and hover
-  and `MIN_ALTITUDE` is unchanged.
+  rises any more (and after the merge, hover neither; see below), and
+  `MIN_ALTITUDE` is unchanged.
 - **Fly-to**: when the answer's anchor is behind the horizon or within 48 px
   of the canvas edge (`FRAME_MARGIN_PX`), the camera flies over the anchor
   in 800 ms at the altitude it has. GlobeView does it whenever
@@ -259,6 +259,25 @@ As built, where it differs from the text below:
   from inside the page on every frame: on a loaded machine, polling from
   the test missed the 2.5 s the answer stays up.
 - Bundle: the first chunk is 252 KB (79 KB gzip), from 239 KB (76 KB).
+- **Changed after the merge**, by the owner on 2026-11-21:
+  - nothing rises any more, hover included: one altitude for every country,
+    no walls, no transition;
+  - the continent's countries are seven soft pinks (still keyed by
+    MAPCOLOR7, every pair at least 14 apart in CIE76 ΔE and 40 from the red
+    of a wrong pick), other land stays grey;
+  - the country under the mouse turns amber and gets the answer's white
+    outline and glow;
+  - the answer gets a ✅ at its anchor and a wrong pick a ❌, over green and
+    red. The marks are SVG in the outline layer, not globe.gl's HTML layer:
+    that one shows an element a few frames after it is given, which under
+    SwiftShader outlasted a 1 s right answer. A white halo keeps the ❌
+    readable on red and the ✅ on green. The outline layer now sits right
+    after globe.gl's canvas, so the rings stay on top of it;
+  - the header and the results rows use ✅ and ❌ too, in place of ✓ and ✗;
+  - e2e specs read each question's feedback from a record the page keeps
+    on every frame (`watchFeedback` in `e2e/fixtures.ts`): on a loaded
+    machine, a few Playwright assertions in a row missed the 1 s a right
+    answer stays up.
 
 Follow math-quizz's `App.tsx` screen state machine and screen layout (header
 with a 🏠 back button, then panels).

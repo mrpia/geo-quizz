@@ -1,6 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CONTINENT_VIEWS, GLOBE_VFOV_DEG } from '../src/domain/view';
-import { at, camera, screenPoint, seedRound, settle, startRound, target, verdict } from './fixtures';
+import {
+  at,
+  camera,
+  feedbackOn,
+  screenPoint,
+  seedRound,
+  settle,
+  startRound,
+  target,
+  verdict,
+  watchFeedback,
+} from './fixtures';
 
 /**
  * The globe in a real browser (plan, Phase 2 item 9): WebGL, and clicks on
@@ -8,8 +19,14 @@ import { at, camera, screenPoint, seedRound, settle, startRound, target, verdict
  * with a long timer, and reads what a click picked from the verdict.
  */
 
-const seed = (page: Page, ids: string[]) =>
-  seedRound(page, { continent: 'europe', secondsPerQuestion: 60 }, ids);
+const seed = async (page: Page, ids: string[]) => {
+  await seedRound(page, { continent: 'europe', secondsPerQuestion: 60 }, ids);
+  await watchFeedback(page);
+};
+
+/** What the tap on `asked` picked, from the page's own record (fixtures.ts). */
+const pickedOn = (page: Page, asked: string) =>
+  expect.poll(async () => (await feedbackOn(page, asked))?.picked);
 
 test('renders the globe with the camera the tap-ring rule assumes', async ({ page }) => {
   await seed(page, ['FRA']);
@@ -84,6 +101,26 @@ test('a drag turns the globe and picks nothing', async ({ page }) => {
   await expect(verdict(page)).toHaveCount(0);
 });
 
+test('the mouse outlines the country of the continent under it, and nothing else', async ({ page }) => {
+  await seed(page, ['FRA']);
+  await startRound(page);
+  const hover = page.getByTestId('globe-hover-outline');
+  const fra = await at(page, 'FRA');
+  await page.mouse.move(fra.x, fra.y);
+  await expect(hover).toHaveAttribute('data-id', 'FRA');
+  await expect(hover.locator('path').first()).toHaveAttribute('d', /^M/);
+  // The Atlantic, then Turkey (Asia in the data): not in the round, so
+  // nothing lights up.
+  await page.mouse.move(fra.x - 250, fra.y);
+  await expect(hover).toHaveCount(0);
+  const box = await page.getByTestId('globe').locator('canvas').first().boundingBox();
+  const turkey = await at(page, 'TUR');
+  expect(box && turkey.y < box.y + box.height && turkey.x < box.x + box.width).toBe(true);
+  await page.mouse.move(turkey.x, turkey.y);
+  await page.waitForTimeout(500);
+  await expect(hover).toHaveCount(0);
+});
+
 test("a ring wins in its bullseye, over the sea, but not elsewhere over a large country", async ({ page }) => {
   // The owner's rule of 2026-11-21 (src/domain/pick.ts).
   await seed(page, ['VAT', 'ITA', 'MLT']);
@@ -94,18 +131,18 @@ test("a ring wins in its bullseye, over the sea, but not elsewhere over a large 
   await expect(target(page)).toHaveAttribute('data-id', 'VAT');
   const vat = await at(page, 'VAT');
   await page.mouse.click(vat.x + 5, vat.y);
-  await expect(verdict(page)).toHaveAttribute('data-picked', 'VAT');
+  await pickedOn(page, 'VAT').toBe('VAT');
 
   // 15 px east of it: inside the drawn ring, but Italy's.
   await expect(target(page)).toHaveAttribute('data-id', 'ITA');
   await page.mouse.click(vat.x + 15, vat.y);
-  await expect(verdict(page)).toHaveAttribute('data-picked', 'ITA');
+  await pickedOn(page, 'ITA').toBe('ITA');
 
   // 20 px south of Malta is the sea: the ring keeps its full reach there.
   await expect(target(page)).toHaveAttribute('data-id', 'MLT');
   const mlt = await at(page, 'MLT');
   await page.mouse.click(mlt.x, mlt.y + 20);
-  await expect(verdict(page)).toHaveAttribute('data-picked', 'MLT');
+  await pickedOn(page, 'MLT').toBe('MLT');
 });
 
 test.describe('on a touch screen', () => {
@@ -119,7 +156,7 @@ test.describe('on a touch screen', () => {
       await settle(page);
       const p = await at(page, id);
       await page.touchscreen.tap(p.x, p.y);
-      await expect(verdict(page)).toHaveAttribute('data-picked', id);
+      await pickedOn(page, id).toBe(id);
     }
   });
 });

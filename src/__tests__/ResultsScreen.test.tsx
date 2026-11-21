@@ -29,12 +29,12 @@ describe('ResultsScreen', () => {
     expect(screen.getByTestId('results-score')).toHaveTextContent('1 / 3');
   });
 
-  it('lists every question in order, marked with ✓ or ✗, not by colour alone', () => {
+  it('lists every question in order, marked with ✅ or ❌, not by colour alone', () => {
     setup();
     expect(rows().map((r) => r.dataset.outcome)).toEqual(['correct', 'wrong', 'timeout']);
-    expect(within(rows()[0]).getByRole('img', { name: 'correct' })).toHaveTextContent('✓');
-    expect(within(rows()[1]).getByRole('img', { name: 'wrong' })).toHaveTextContent('✗');
-    expect(within(rows()[2]).getByRole('img', { name: 'wrong' })).toHaveTextContent('✗');
+    expect(within(rows()[0]).getByRole('img', { name: 'correct' })).toHaveTextContent('✅');
+    expect(within(rows()[1]).getByRole('img', { name: 'wrong' })).toHaveTextContent('❌');
+    expect(within(rows()[2]).getByRole('img', { name: 'wrong' })).toHaveTextContent('❌');
   });
 
   it('names the target, what was tapped or that time ran out, and the seconds taken', () => {

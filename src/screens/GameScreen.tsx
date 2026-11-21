@@ -145,7 +145,7 @@ export const GameScreen = ({
             >
               {/* The mark says right or wrong; the colour only repeats it. */}
               <span className="game__mark" aria-hidden="true">
-                {shown.correct ? '✓' : '✗'}
+                {shown.correct ? '✅' : '❌'}
               </span>{' '}
               {verdict === 'correct'
                 ? t('game.correct')
