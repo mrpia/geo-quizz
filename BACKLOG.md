@@ -53,16 +53,6 @@ can be left out (docs/plan.md, Phase 5). Still open:
   Siachen Glacier (2,118 km², "Indeterminate") is still asked; the Ashmore
   and Cartier Islands and Heard Island are not.
 
-### Explore mode
-
-No timer and no score: tap any country to see its name, and its flag once
-flags exist. For learning a continent before being tested on it.
-
-- Reuses the globe and the data; a tap shows a label instead of judging an
-  answer.
-- Show the name in the UI language only, or in all three? Useful in a
-  bilingual family or class.
-
 ### Pick the name
 
 The globe highlights a country and the player picks its name from four
@@ -148,8 +138,8 @@ costs points instead).
   load.
 - Emoji flags would cost nothing, but Windows doesn't draw country-flag emoji
   and shows two letters instead, so they fail on a desktop PC.
-- Also on the results screen, in explore mode, and when the answer is
-  revealed after a miss?
+- Also on the results screen, in Explore mode (Phase 6) next to the name,
+  and when the answer is revealed after a miss?
 
 ### Sounds
 

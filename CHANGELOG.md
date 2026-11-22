@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-22
+
+### Added
+
+- Explore mode, opened with the Explore button under Start on Home: the
+  globe of the continent chosen, with no question, no countdown and no
+  score. A tap or a click on one of the continent's places shows its name in
+  the header, in the app's language, and outlines it in white. The next tap
+  replaces it; a tap on the sea or on land outside the continent changes
+  nothing. The switch for the tiny countries applies, as in a round, and 🏠
+  goes back home.
+- `GlobeView` takes a `selectedId`, outlined like the answer but with no ✅,
+  no colour of its own and no camera flight.
+
 ## [0.3.0] - 2026-11-22
 
 ### Added

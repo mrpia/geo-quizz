@@ -40,7 +40,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
-- [ ] **Phase 6 — Explore mode** (0.4.0)
+- [x] **Phase 6 — Explore mode** (0.4.0)
 
 ### Phase 0 — Foundation (done)
 
@@ -497,7 +497,41 @@ the start views, estimated for a 700 px tall globe with the rule in
 Done when: both switches survive a reload, a round with each of them on and
 off plays to the results, and both suites pass in CI.
 
-### Phase 6 — Explore mode
+### Phase 6 — Explore mode (done)
+
+As built, where it differs from the text below or fills in what it left
+open:
+
+- **The name shows in the header**, in the game's large type, under a prompt
+  that stays: "Tap a country to see its name" (FR "Touche un pays pour voir
+  son nom", DE "Tippe auf ein Land, um seinen Namen zu sehen"). Unlike the
+  game's question, a long name wraps instead of being cut short with "…":
+  on this screen the name is the point. The longest, "Territoires
+  extérieurs australiens de l'Océan Indien" (54 characters), measured
+  1,012 px in headless Chromium on Linux, in the 1,028 px the header
+  leaves it at 1180 px: one line, barely, and two with a wider font. When a
+  name wraps, the header grows by a line and the globe resizes. At 390 px,
+  "Bosnien und Herzegowina" takes two lines, and so does the German prompt.
+- **A tap on the sea or on grey land keeps the name** and its outline.
+  `GlobeView` calls nothing for those taps, a near miss should not wipe
+  what the child is reading, and the outline still shows which place the
+  name belongs to. A tap on the place already named changes nothing.
+- **The mouse hover stays**: amber and outlined, as in a round, and it never
+  shows a name. The selected place turns amber too while the mouse is on
+  it, since it has no colour of its own to keep; one outline is drawn, not
+  two.
+- The button reads "Explore" (FR "Explorer", DE "Entdecken"), with 🧭, in
+  the secondary style (white, bordered), so Start stays the main action.
+  At 1180×820 Home still fits without scrolling: Explore ends at 714 px,
+  under Start at 638.
+- Before the map is drawn the header is blank and taps are ignored. Each
+  visit starts with no name.
+- e2e: `seedSettings` in `e2e/fixtures.ts` writes the settings only, for a
+  spec with no draw; `seedRound` now uses it. `openExplore` goes from Home
+  to a drawn globe.
+- Bundle: the first chunk is 268 KB (85 KB gzip), from 264 KB (84 KB) on
+  `main`.
+- **0.4.0** ships with this phase.
 
 BACKLOG's "Explore mode", asked for by the owner on 2026-11-22: the globe
 with no question, no countdown and no score, where a tap on a place shows its

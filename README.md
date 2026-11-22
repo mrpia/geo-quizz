@@ -4,7 +4,8 @@ A geography quiz for touch-screen tablets that works just as well with a mouse.
 Pick a continent and it turns up on a 3D globe with every border drawn and no
 names. The game names a country; you have 10 seconds to tap it. Ten countries
 make a round, and you see your score at the end. Both numbers can be changed
-in the settings.
+in the settings. To learn a continent first, Explore shows the same globe
+with no question: tap a country and its name appears.
 
 French, German and English. Everything runs in the browser: no account, no
 server, nothing sent anywhere.
