@@ -14,7 +14,7 @@ export const fr = {
   'home.summaryUntimed': '{count} pays · sans limite de temps',
   'home.summaryOneUntimed': '1 pays · sans limite de temps',
   'home.timeLimit': 'Limite de temps',
-  'home.skipTiny': 'Sans les tout petits pays',
+  'home.tinyCountries': 'Tout petits pays',
   'home.start': 'Lancer',
   'home.explore': 'Explorer',
   'home.settingsAria': 'paramètres',

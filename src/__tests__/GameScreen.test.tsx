@@ -169,7 +169,7 @@ describe('GameScreen: feedback', () => {
     expect(globe()).toHaveAttribute('data-correct', '');
   });
 
-  it('a wrong tap: ❌, names the country tapped, the pick in red and the answer in green, next after 2.5 s', () => {
+  it('a wrong tap: ❌, names the country tapped, the pick in red and the answer in green, next after 4 s', () => {
     setup();
     const first = target();
     const wrong = notTarget();
@@ -186,13 +186,13 @@ describe('GameScreen: feedback', () => {
     expect(globe()).toHaveAttribute('data-correct', first);
     expect(globe()).toHaveAttribute('data-correct-color', RIGHT_COLOR);
     expect(screen.getByTestId('game-score')).toHaveTextContent('Score: 0');
-    advance(2_499);
+    advance(3_999);
     expect(verdict()).toBeInTheDocument();
     advance(1);
     expect(screen.getByTestId('game-counter')).toHaveTextContent('2 / 3');
   });
 
-  it("a timeout: ❌ Time's up!, the answer in green, next after 2.5 s", () => {
+  it("a timeout: ❌ Time's up!, the answer in green, next after 4 s", () => {
     setup({ seconds: 3 });
     const first = target();
     advance(3_100);
@@ -202,7 +202,9 @@ describe('GameScreen: feedback', () => {
     expect(verdict()).toHaveAttribute('data-picked', '');
     expect(globe()).toHaveAttribute('data-correct', first);
     expect(globe()).toHaveAttribute('data-picked', '');
-    advance(2_500);
+    advance(3_999);
+    expect(verdict()).toBeInTheDocument();
+    advance(1);
     expect(screen.getByTestId('game-counter')).toHaveTextContent('2 / 3');
   });
 
@@ -239,11 +241,11 @@ describe('GameScreen: the end of the round', () => {
     advance(1_500);
     const wrong = notTarget();
     tap(wrong);
-    advance(2_500);
+    advance(4_000);
     ids.push(target());
     advance(10_100);
     expect(onFinish).not.toHaveBeenCalled();
-    advance(2_500);
+    advance(4_000);
     expect(onFinish).toHaveBeenCalledExactlyOnceWith([
       { targetId: ids[0], pickedId: ids[0], correct: true, elapsedMs: 2_000 },
       { targetId: ids[1], pickedId: wrong, correct: false, elapsedMs: 1_500 },
@@ -285,6 +287,17 @@ describe('GameScreen: without a time limit', () => {
     ]);
   });
 
+  it('leaves a wrong answer up for 4 s, as with the limit on', () => {
+    // The owner's call, 2026-11-22: finding the answer on the globe takes as
+    // long without a countdown as with one.
+    setup({ seconds: null });
+    tap(notTarget());
+    advance(3_999);
+    expect(verdict()).toHaveAttribute('data-verdict', 'wrong');
+    advance(1);
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('2 / 3');
+  });
+
   it('still waits for the globe before the clock that times the answer starts', () => {
     const { onFinish } = setup({ seconds: null, countries: 1, ready: false });
     advance(5_000);
@@ -323,7 +336,7 @@ describe('GameScreen: without the tiny countries', () => {
     expect(screen.getByTestId('game-score')).toHaveTextContent('Score: 0');
   });
 
-  it('tells the globe the switch is off by default', () => {
+  it('tells the globe when every place is asked', () => {
     setup();
     expect(globe()).toHaveAttribute('data-skip-tiny', 'false');
   });

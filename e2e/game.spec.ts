@@ -85,7 +85,7 @@ test('a round whose timer runs out flies to the answer and outlines it', async (
   await expect(target(page)).toHaveAttribute('data-id', 'HMD');
   expect(await screenPoint(page, 'HMD')).toBeNull();
 
-  // The answer is on screen for 2.5 s, and a loaded machine polls slowly, so
+  // The answer is on screen for 4 s, and a loaded machine polls slowly, so
   // the page itself records, frame by frame, the verdict, the outline, and
   // whether the camera came over the answer at the round's altitude with the
   // outline drawn and the ✅ showing there.

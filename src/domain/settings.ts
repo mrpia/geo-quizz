@@ -9,16 +9,22 @@ export type Settings = {
   continent: Continent;
   /** Off: no countdown and no timeout, a question waits for a tap. */
   timeLimitOn: boolean;
-  /** On: a round leaves out the places under 1,000 km² (`quizPool`). */
+  /**
+   * On: a round leaves out the places under 1,000 km² (`quizPool`). Home's
+   * "Tiny countries" switch shows it the other way round, so that each switch
+   * that is on makes the game harder; the stored field kept its name and
+   * meaning, so choices saved by 0.3.0 to 0.4.1 read as they were.
+   */
   skipTiny: boolean;
 };
 
 export const DEFAULT_SECONDS_PER_QUESTION = 10;
 export const DEFAULT_COUNTRIES_PER_ROUND = 10;
 export const DEFAULT_CONTINENT: Continent = 'europe';
-// The game as it was before the switches (Phase 5), so an update changes nobody's game.
+// A new player gets the countdown but not the tiny countries: "Time limit" on,
+// "Tiny countries" off (the owner's call, 2026-11-22; docs/plan.md, Phase 5).
 export const DEFAULT_TIME_LIMIT_ON = true;
-export const DEFAULT_SKIP_TINY = false;
+export const DEFAULT_SKIP_TINY = true;
 
 const isContinent = (value: unknown): value is Continent =>
   typeof value === 'string' && (CONTINENTS as readonly string[]).includes(value);
