@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-22
+
+### Changed
+
+- Explore: the place named in the header is now green, the answer's green
+  in a round, as well as outlined, and it stays green under the mouse. In
+  0.4.0 it kept its pink with only the outline and turned amber under the
+  mouse, so the amber, outlined place under the mouse looked more chosen
+  than the one named.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

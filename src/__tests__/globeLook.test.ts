@@ -6,6 +6,7 @@ import {
   MAP_PALETTE,
   OTHER_LAND_COLOR,
   RIGHT_COLOR,
+  SELECTED_COLOR,
   WRONG_COLOR,
   capColorOf,
   type GlobeHighlight,
@@ -100,6 +101,20 @@ describe('cap colours', () => {
   it('shows a right answer in the correct colour', () => {
     const highlight = { ...NONE, pickedId: 'FRA', correctId: 'FRA' };
     expect(capColorOf(country('FRA'), true, null, highlight)).toBe(RIGHT_COLOR);
+  });
+
+  // The owner's call of 2026-11-22 (docs/plan.md, Phase 6): in 0.4.0 the
+  // amber place under the mouse looked more chosen than the one named.
+  it('paints the place selected in Explore green, and keeps it green under the mouse', () => {
+    expect(capColorOf(country('FRA'), true, null, NONE, 'FRA')).toBe(SELECTED_COLOR);
+    expect(capColorOf(country('FRA'), true, 'FRA', NONE, 'FRA')).toBe(SELECTED_COLOR);
+    expect(capColorOf(country('DEU'), true, 'DEU', NONE, 'FRA')).toBe(HOVER_COLOR);
+    expect(capColorOf(country('ESP'), true, null, NONE, 'FRA')).toBe(capColorOf(country('ESP'), true, null, NONE));
+  });
+
+  it("uses the answer's green for it: in both screens, green marks the place named in the header", () => {
+    expect(SELECTED_COLOR).toBe(RIGHT_COLOR);
+    expect(MAP_PALETTE).not.toContain(SELECTED_COLOR);
   });
 
   it('refuses a MAPCOLOR7 value outside 1–7', () => {

@@ -59,9 +59,9 @@ export type GlobeViewProps = {
    */
   highlight?: GlobeHighlight;
   /**
-   * Explore mode (plan, Phase 6): the place whose name is shown, outlined in
-   * white. Unlike the answer it gets no mark and no colour of its own, and
-   * the camera never moves for it: the player just tapped it.
+   * Explore mode (plan, Phase 6): the place whose name is shown, green
+   * (`SELECTED_COLOR`) and outlined in white. Unlike the answer it gets no
+   * mark, and the camera never moves for it: the player just tapped it.
    */
   selectedId?: string | null;
   /** A tap on a place of the round (`quizPool`). Taps anywhere else, drags and pinches call nothing. */
@@ -161,9 +161,9 @@ export const GlobeView = ({
   const caps = useMemo(() => {
     const shown = { pickedId, correctId, pickedColor, correctColor };
     return new Map<string, string>(
-      world.countries.map((c) => [c.id, capColorOf(c, inPlay.has(c.id), hoverId, shown)]),
+      world.countries.map((c) => [c.id, capColorOf(c, inPlay.has(c.id), hoverId, shown, selectedId)]),
     );
-  }, [world, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor]);
+  }, [world, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor, selectedId]);
 
   if (selectedId !== null && !world.byId.has(selectedId)) {
     throw new Error(`GlobeView: no country ${JSON.stringify(selectedId)} to select`);

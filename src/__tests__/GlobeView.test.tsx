@@ -12,6 +12,7 @@ import {
   MAP_PALETTE,
   NO_HIGHLIGHT,
   OTHER_LAND_COLOR,
+  SELECTED_COLOR,
   type GlobeHighlight,
 } from '../components/globeLook';
 
@@ -521,8 +522,8 @@ describe('GlobeView: the ✅ and ❌ marks', () => {
 
 /**
  * Explore mode (docs/plan.md, Phase 6): the place whose name is shown is
- * outlined, and nothing else. It judges nothing, so no ✅ or ❌ and no colour
- * of its own, and it was just tapped, so the camera stays where it is.
+ * green and outlined. It judges nothing, so no ✅ or ❌, and it was just
+ * tapped, so the camera stays where it is.
  */
 describe('GlobeView: the selected place', () => {
   const draw = () => act(() => live().scene.onAfterRender?.());
@@ -531,7 +532,7 @@ describe('GlobeView: the selected place', () => {
     act(() => (live().props.get('onPolygonHover') as (d: object | null) => void)(datum(id)));
   };
 
-  it('outlines it after every frame, with no mark and no colour of its own', async () => {
+  it('paints it green and outlines it after every frame, with no mark', async () => {
     const { rerender } = await setup();
     rerender({ selectedId: 'FRA' });
     const outline = screen.getByTestId('globe-selected-outline');
@@ -539,7 +540,9 @@ describe('GlobeView: the selected place', () => {
     draw();
     for (const path of outline.querySelectorAll('path')) expect(path.getAttribute('d')).toMatch(/^M[\d.-]+ [\d.-]+L/);
     expect(screen.queryAllByTestId('globe-mark')).toEqual([]);
-    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(SELECTED_COLOR);
+    expect(accessor('polygonAltitude')(datum('FRA'))).toBe(ALTITUDE.base);
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('ESP')));
     expect(screen.queryByTestId('globe-answer-outline')).not.toBeInTheDocument();
   });
 
@@ -547,7 +550,10 @@ describe('GlobeView: the selected place', () => {
     const { rerender } = await setup({ selectedId: 'FRA' });
     rerender({ selectedId: 'POL' });
     expect(screen.getAllByTestId('globe-selected-outline').map((o) => o.dataset.id)).toEqual(['POL']);
+    expect(accessor('polygonCapColor')(datum('POL'))).toBe(SELECTED_COLOR);
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
     rerender({ selectedId: null });
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('POL')));
     expect(screen.queryByTestId('globe-selected-outline')).not.toBeInTheDocument();
     expect(() => draw()).not.toThrow();
   });
@@ -562,17 +568,18 @@ describe('GlobeView: the selected place', () => {
     expect(live().flights).toHaveLength(flights);
   });
 
-  it('turns amber under the mouse like any other place, with one outline', async () => {
+  it('stays green under the mouse, with one outline, while other places turn amber', async () => {
     await setup({ selectedId: 'FRA' });
     hover('FRA');
-    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(HOVER_COLOR);
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(SELECTED_COLOR);
     expect(screen.queryByTestId('globe-hover-outline')).not.toBeInTheDocument();
     expect(screen.getByTestId('globe-selected-outline')).toHaveAttribute('data-id', 'FRA');
-    // The mouse moves on: both are outlined, only the one under it is amber.
+    // The mouse moves on: both are outlined, the named one green, the one under the mouse amber.
     hover('ESP');
     expect(screen.getByTestId('globe-hover-outline')).toHaveAttribute('data-id', 'ESP');
+    expect(accessor('polygonCapColor')(datum('ESP'))).toBe(HOVER_COLOR);
     expect(screen.getByTestId('globe-selected-outline')).toHaveAttribute('data-id', 'FRA');
-    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(SELECTED_COLOR);
   });
 
   it('throws for a place that does not exist', async () => {

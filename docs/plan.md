@@ -40,7 +40,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
-- [x] **Phase 6 — Explore mode** (0.4.0)
+- [x] **Phase 6 — Explore mode** (0.4.0, 0.4.1)
 
 ### Phase 0 — Foundation (done)
 
@@ -517,9 +517,14 @@ open:
   what the child is reading, and the outline still shows which place the
   name belongs to. A tap on the place already named changes nothing.
 - **The mouse hover stays**: amber and outlined, as in a round, and it never
-  shows a name. The selected place turns amber too while the mouse is on
-  it, since it has no colour of its own to keep; one outline is drawn, not
-  two.
+  shows a name. A place has one outline, never two.
+- **The selected place is green** (`SELECTED_COLOR`, the answer's green)
+  and outlined, and stays green under the mouse, as the answer does in a
+  round. On both screens, green marks the place named in the header. This
+  is 0.4.1, the owner's call of 2026-11-22: in 0.4.0 the selected place
+  kept its pink with only the outline and turned amber under the mouse, so
+  the amber, outlined place under the mouse looked more chosen than the one
+  named. The outline stays, so the colour is not the only cue.
 - The button reads "Explore" (FR "Explorer", DE "Entdecken"), with 🧭, in
   the secondary style (white, bordered), so Start stays the main action.
   At 1180×820 Home still fits without scrolling: Explore ends at 714 px,
@@ -531,7 +536,8 @@ open:
   to a drawn globe.
 - Bundle: the first chunk is 268 KB (85 KB gzip), from 264 KB (84 KB) on
   `main`.
-- **0.4.0** ships with this phase.
+- **0.4.0** ships with this phase, and **0.4.1** turns the selected place
+  green.
 
 BACKLOG's "Explore mode", asked for by the owner on 2026-11-22: the globe
 with no question, no countdown and no score, where a tap on a place shows its
