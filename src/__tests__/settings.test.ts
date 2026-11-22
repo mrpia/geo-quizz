@@ -41,7 +41,13 @@ describe('defaultSettings', () => {
       secondsPerQuestion: 10,
       countriesPerRound: 10,
       continent: 'europe',
+      timeLimitOn: true,
+      skipTiny: false,
     });
+  });
+
+  it('plays the game as it was before the switches: timed, every place asked', () => {
+    expect(defaultSettings(['en'])).toMatchObject({ timeLimitOn: true, skipTiny: false });
   });
 });
 
@@ -49,7 +55,14 @@ describe('sanitizeSettings', () => {
   const browser = ['fr-CH'];
 
   it('keeps valid settings as they are', () => {
-    const valid = { language: 'en', secondsPerQuestion: 25, countriesPerRound: 42, continent: 'oceania' };
+    const valid = {
+      language: 'en',
+      secondsPerQuestion: 25,
+      countriesPerRound: 42,
+      continent: 'oceania',
+      timeLimitOn: false,
+      skipTiny: true,
+    };
     expect(sanitizeSettings(valid, browser)).toEqual(valid);
   });
 
@@ -66,6 +79,8 @@ describe('sanitizeSettings', () => {
       secondsPerQuestion: 20,
       countriesPerRound: 10,
       continent: 'europe',
+      timeLimitOn: true,
+      skipTiny: false,
     });
     expect(
       sanitizeSettings(
@@ -86,6 +101,24 @@ describe('sanitizeSettings', () => {
     }
     for (const continent of ['antarctica', 'Europe', 'atlantis', 3, null]) {
       expect(sanitizeSettings({ continent }, browser).continent).toBe('europe');
+    }
+  });
+
+  it('reads settings saved by 0.2.0, which had no switches, as the game they played', () => {
+    const saved = { language: 'de', secondsPerQuestion: 15, countriesPerRound: 5, continent: 'asia' };
+    expect(sanitizeSettings(saved, browser)).toEqual({ ...saved, timeLimitOn: true, skipTiny: false });
+  });
+
+  it('takes only a boolean for a switch', () => {
+    expect(sanitizeSettings({ timeLimitOn: false, skipTiny: true }, browser)).toMatchObject({
+      timeLimitOn: false,
+      skipTiny: true,
+    });
+    for (const value of ['false', 0, 1, 'true', null, {}]) {
+      expect(sanitizeSettings({ timeLimitOn: value, skipTiny: value }, browser)).toMatchObject({
+        timeLimitOn: true,
+        skipTiny: false,
+      });
     }
   });
 
@@ -131,6 +164,8 @@ describe('settingsStore', () => {
       secondsPerQuestion: 7,
       countriesPerRound: 20,
       continent: 'asia',
+      timeLimitOn: false,
+      skipTiny: true,
     } as const;
     saveSettings(settings, browser);
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual(settings);
@@ -153,7 +188,14 @@ describe('settingsStore', () => {
 
   it('sanitizes what it writes', () => {
     saveSettings(
-      { language: 'en', secondsPerQuestion: 1.2, countriesPerRound: 99, continent: 'africa' },
+      {
+        language: 'en',
+        secondsPerQuestion: 1.2,
+        countriesPerRound: 99,
+        continent: 'africa',
+        timeLimitOn: false,
+        skipTiny: true,
+      },
       browser,
     );
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual({
@@ -161,6 +203,8 @@ describe('settingsStore', () => {
       secondsPerQuestion: 3,
       countriesPerRound: 50,
       continent: 'africa',
+      timeLimitOn: false,
+      skipTiny: true,
     });
   });
 

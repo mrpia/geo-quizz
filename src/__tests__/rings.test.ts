@@ -1,5 +1,5 @@
 import raw from '../data/world.json?raw';
-import { countriesOf, parseWorld, type WorldTopology } from '../domain/world';
+import { countriesOf, parseWorld, quizPool, type WorldTopology } from '../domain/world';
 import {
   RING_BULLSEYE_PX,
   RING_DIAMETER_PX,
@@ -31,6 +31,15 @@ describe('which countries get a ring', () => {
     expect(ringedIds([], 1, 700)).toEqual([]);
     const ids = ringedIds(europe, 2.5, 700);
     expect(ids.every((id) => world.byId.get(id)?.properties.continent === 'europe')).toBe(true);
+  });
+
+  it('rings far fewer places at the Europe view without the tiny countries', () => {
+    // The point of the switch (docs/plan.md, Phase 5), at the same 700 px
+    // tall globe as the tests above.
+    const { altitude } = CONTINENT_VIEWS.europe;
+    expect(ringedIds(europe, altitude, 700)).toHaveLength(16);
+    const ringed = ringedIds(quizPool(world, 'europe', { skipTiny: true }), altitude, 700);
+    expect(ringed.sort()).toEqual(['FRO', 'KOS', 'LUX', 'MKD', 'MNE', 'SVN']);
   });
 
   it('draws rings bigger than a fingertip, with a hit area a little larger still', () => {

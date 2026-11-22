@@ -2,7 +2,14 @@
 // coordinates. `node:fs` would work too, but would pull Node's types into src/.
 import { geoArea } from 'd3-geo';
 import raw from '../data/world.json?raw';
-import { CONTINENTS, countriesOf, parseWorld, type WorldTopology } from '../domain/world';
+import {
+  CONTINENTS,
+  TINY_BELOW_KM2,
+  countriesOf,
+  parseWorld,
+  quizPool,
+  type WorldTopology,
+} from '../domain/world';
 import { LANGUAGES } from '../i18n/language';
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
@@ -89,5 +96,52 @@ describe('data decisions', () => {
     expect(continent('MUS')).toBe('africa');
     expect(continent('SGS')).toBe('south-america');
     expect(continent('ATA')).toBe('antarctica');
+  });
+});
+
+/**
+ * The "without the tiny countries" switch (docs/plan.md, Phase 5): the
+ * owner's cut-off of 2026-11-22, and what it leaves on each continent.
+ */
+describe('the quiz pool', () => {
+  const ids = (continent: Parameters<typeof countriesOf>[1], skipTiny: boolean) =>
+    quizPool(world, continent, { skipTiny }).map((c) => c.id);
+
+  it('is every place of the continent, in data order, while the switch is off', () => {
+    for (const continent of CONTINENTS) {
+      expect(ids(continent, false), continent).toEqual(countriesOf(world, continent).map((c) => c.id));
+    }
+  });
+
+  it('leaves out the places under 1,000 km² when the switch is on', () => {
+    expect(TINY_BELOW_KM2).toBe(1_000);
+    for (const continent of CONTINENTS) {
+      const pool = quizPool(world, continent, { skipTiny: true });
+      expect(pool.every((c) => c.properties.areaKm2 >= 1_000), continent).toBe(true);
+      const left = countriesOf(world, continent).filter((c) => !pool.includes(c));
+      expect(left.every((c) => c.properties.areaKm2 < 1_000), continent).toBe(true);
+    }
+  });
+
+  it('keeps this many places per continent, as measured on 2026-11-22', () => {
+    const counts = Object.fromEntries(CONTINENTS.map((c) => [c, [ids(c, false).length, ids(c, true).length]]));
+    expect(counts).toEqual({
+      europe: [50, 40],
+      africa: [60, 55],
+      asia: [54, 49],
+      'north-america': [38, 18],
+      'south-america': [14, 14],
+      // Fewer than a default round of 10: the round is shortened (App's roundSize).
+      oceania: [25, 9],
+    });
+  });
+
+  it('drops the microstates and the smallest islands from Europe, and keeps the Faroe Islands', () => {
+    const dropped = countriesOf(world, 'europe')
+      .map((c) => c.id)
+      .filter((id) => !ids('europe', true).includes(id));
+    expect(dropped.sort()).toEqual(['ALD', 'AND', 'GGY', 'IMN', 'JEY', 'LIE', 'MCO', 'MLT', 'SMR', 'VAT']);
+    // 1,036 km², the closest to the cut-off on the kept side.
+    expect(ids('europe', true)).toContain('FRO');
   });
 });
