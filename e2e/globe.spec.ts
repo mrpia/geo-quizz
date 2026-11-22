@@ -145,6 +145,31 @@ test("a ring wins in its bullseye, over the sea, but not elsewhere over a large 
   await pickedOn(page, 'MLT').toBe('MLT');
 });
 
+test('without the tiny countries, they have no ring and a click on one picks nothing', async ({ page }) => {
+  // docs/plan.md, Phase 5: a place left out acts like land outside the
+  // continent. Malta is too small to hit at this zoom, so without the
+  // switch its ring is what a click on it lands on (the test above).
+  await seedRound(page, { continent: 'europe', timeLimitOn: false, skipTiny: true }, ['FRA']);
+  await watchFeedback(page);
+  await startRound(page);
+  await expect(page.getByTestId('countdown')).toHaveCount(0);
+  await expect(page.locator('[data-testid="globe-ring"][data-id="LUX"]')).toBeVisible();
+  const ringed = await page
+    .getByTestId('globe-ring')
+    .evaluateAll((rings) => rings.map((ring) => (ring as HTMLElement).dataset.id));
+  for (const id of ['VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT']) expect(ringed).not.toContain(id);
+
+  const mlt = await at(page, 'MLT');
+  await page.mouse.click(mlt.x, mlt.y);
+  await page.waitForTimeout(500);
+  await expect(verdict(page)).toHaveCount(0);
+
+  // The globe still takes clicks: France is the answer.
+  const fra = await at(page, 'FRA');
+  await page.mouse.click(fra.x, fra.y);
+  await pickedOn(page, 'FRA').toBe('FRA');
+});
+
 test.describe('on a touch screen', () => {
   test.use({ hasTouch: true });
 

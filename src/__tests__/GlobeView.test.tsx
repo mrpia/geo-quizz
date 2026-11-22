@@ -143,7 +143,7 @@ const datum = (id: string) => (live().props.get('polygonsData') as { country: { 
 
 const setup = async (props: Partial<GlobeViewProps> = {}) => {
   const onPick = vi.fn();
-  const all: GlobeViewProps = { world, continent: 'europe', onPick, ...props };
+  const all: GlobeViewProps = { world, continent: 'europe', skipTiny: false, onPick, ...props };
   const ui = (p: GlobeViewProps) => (
     <StrictMode>
       <LanguageProvider lang="en">
@@ -226,7 +226,7 @@ describe('GlobeView: setup', () => {
     fake.failCreate = true;
     render(
       <LanguageProvider lang="en">
-        <GlobeView world={world} continent="europe" onPick={vi.fn()} />
+        <GlobeView world={world} continent="europe" skipTiny={false} onPick={vi.fn()} />
       </LanguageProvider>,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('The map could not be loaded.');
@@ -617,6 +617,55 @@ describe('GlobeView: tap rings', () => {
     expect(el).toHaveClass('globe-ring--hidden');
     hide(el, true);
     expect(el).not.toHaveClass('globe-ring--hidden');
+  });
+});
+
+/**
+ * The "without the tiny countries" switch (docs/plan.md, Phase 5): a place
+ * left out looks and acts like land outside the continent.
+ */
+describe('GlobeView: without the tiny countries', () => {
+  const ringIds = () => (live().props.get('htmlElementsData') as { id: string }[]).map((d) => d.id);
+  const LEFT_OUT = ['VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT'];
+
+  it('turns the places left out grey and keeps the others in the pinks', async () => {
+    await setup({ skipTiny: true });
+    const cap = accessor('polygonCapColor');
+    for (const id of LEFT_OUT) expect(cap(datum(id)), id).toBe(OTHER_LAND_COLOR);
+    for (const id of ['FRA', 'LUX', 'FRO']) expect(MAP_PALETTE, id).toContain(cap(datum(id)));
+  });
+
+  it('rings none of them, and still rings the small places that stay', async () => {
+    await setup({ skipTiny: true });
+    for (const id of LEFT_OUT) expect(ringIds(), id).not.toContain(id);
+    expect(ringIds()).toContain('LUX');
+  });
+
+  it('picks nothing on a tap on one of them', async () => {
+    const { onPick } = await setup({ skipTiny: true });
+    for (const id of ['MLT', 'AND']) {
+      const p = pointOf(id);
+      tap(p.x, p.y);
+    }
+    expect(onPick).not.toHaveBeenCalled();
+  });
+
+  it('does not light one up under the mouse', async () => {
+    await setup({ skipTiny: true });
+    const hover = live().props.get('onPolygonHover') as (d: object | null) => void;
+    fireEvent.pointerMove(live().canvas, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
+    act(() => hover(datum('MLT')));
+    expect(accessor('polygonCapColor')(datum('MLT'))).toBe(OTHER_LAND_COLOR);
+    expect(screen.queryByTestId('globe-hover-outline')).not.toBeInTheDocument();
+  });
+
+  it('brings them back when the switch goes off, without rebuilding the shapes', async () => {
+    const { rerender } = await setup({ skipTiny: true });
+    const before = live().props.get('polygonsData');
+    rerender({ skipTiny: false });
+    expect(live().props.get('polygonsData')).toBe(before);
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('MLT')));
+    expect(ringIds()).toContain('MLT');
   });
 });
 

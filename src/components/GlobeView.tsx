@@ -15,7 +15,7 @@ import {
 } from '../domain/outline';
 import { ringedIds } from '../domain/rings';
 import { CONTINENT_VIEWS, isInFrame, isWithinHorizon, viewOver } from '../domain/view';
-import { countriesOf, type Continent, type Country, type World } from '../domain/world';
+import { quizPool, type Continent, type Country, type World } from '../domain/world';
 import { useI18n } from '../i18n/I18nContext';
 import type { GeoQuizzHook } from './geoQuizzHook';
 import { countDrawnShapes, shapeCount } from './globeShapes';
@@ -47,13 +47,18 @@ export type GlobeViewProps = {
   world: World;
   continent: Continent;
   /**
+   * Leave out the continent's tiny places (`quizPool`): they turn grey, get
+   * no ring and cannot be picked, like land outside the continent.
+   */
+  skipTiny: boolean;
+  /**
    * What to show after a tap or a timeout. Nothing by default. The answer
    * (`correctId`) is outlined and marked ✅, a wrong pick marked ❌, and the
    * camera flies over the answer, at the altitude it has, when it is out of
    * frame (plan, Phase 3).
    */
   highlight?: GlobeHighlight;
-  /** A tap on a country of `continent`. Taps anywhere else, drags and pinches call nothing. */
+  /** A tap on a place of the round (`quizPool`). Taps anywhere else, drags and pinches call nothing. */
   onPick: (id: string) => void;
   /**
    * Called once, when the map is drawn: the sphere and every country's shape
@@ -108,6 +113,7 @@ const showRing = (ring: HTMLElement, visible: boolean) => {
 export const GlobeView = ({
   world,
   continent,
+  skipTiny,
   highlight = NO_HIGHLIGHT,
   onPick,
   onReady,
@@ -131,7 +137,8 @@ export const GlobeView = ({
   const [height, setHeight] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
-  const countries = useMemo(() => countriesOf(world, continent), [world, continent]);
+  // The round's places: everything below (colours, rings, hover, picks) reads these.
+  const countries = useMemo(() => quizPool(world, continent, { skipTiny }), [world, continent, skipTiny]);
   const inPlay = useMemo(() => new Set(countries.map((c) => c.id)), [countries]);
   const locate = useMemo(() => pick?.createLocator(countries) ?? null, [pick, countries]);
   // One datum per country for the life of the world: three-globe keys its

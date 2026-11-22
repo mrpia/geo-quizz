@@ -8,6 +8,8 @@ const settings: Settings = {
   secondsPerQuestion: 10,
   countriesPerRound: 10,
   continent: 'africa',
+  timeLimitOn: true,
+  skipTiny: false,
 };
 
 const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = settings.language) => {
@@ -47,6 +49,40 @@ describe('HomeScreen', () => {
   it('says "1 country" for a round of one', () => {
     setup({ roundSize: 1 }, 'fr');
     expect(screen.getByText('1 pays · 10 s')).toBeInTheDocument();
+  });
+
+  it('offers two switches, set as saved', () => {
+    setup({ settings: { ...settings, timeLimitOn: false, skipTiny: true } });
+    expect(screen.getByRole('switch', { name: 'Time limit' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('switch', { name: 'Without the tiny countries' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
+  it('names the switches in the language of the app', () => {
+    setup({ settings: { ...settings, language: 'de' } }, 'de');
+    expect(screen.getByRole('switch', { name: 'Zeitlimit' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Ohne die ganz kleinen Länder' })).toBeInTheDocument();
+  });
+
+  it('saves each switch on its own, at once', () => {
+    const { onChange } = setup();
+    fireEvent.click(screen.getByTestId('switch-time-limit'));
+    expect(onChange).toHaveBeenLastCalledWith({ ...settings, timeLimitOn: false });
+    fireEvent.click(screen.getByTestId('switch-skip-tiny'));
+    expect(onChange).toHaveBeenLastCalledWith({ ...settings, skipTiny: true });
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('says "no time limit" in the summary, in place of the seconds, when the limit is off', () => {
+    setup({ settings: { ...settings, timeLimitOn: false } });
+    expect(screen.getByText('10 countries · no time limit')).toBeInTheDocument();
+  });
+
+  it('says it for a round of one too', () => {
+    setup({ settings: { ...settings, timeLimitOn: false }, roundSize: 1 }, 'fr');
+    expect(screen.getByText('1 pays · sans limite de temps')).toBeInTheDocument();
   });
 
   it('starts the round and opens the settings', () => {

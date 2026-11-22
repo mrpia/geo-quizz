@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { loadWorld } from './data/loadWorld';
 import type { Answer } from './domain/game';
 import type { Settings } from './domain/settings';
-import { countriesOf, type World } from './domain/world';
+import { quizPool, type World } from './domain/world';
 import { LanguageProvider, useI18n } from './i18n/I18nContext';
 import { AboutScreen } from './screens/AboutScreen';
 import { GameScreen } from './screens/GameScreen';
@@ -42,7 +42,10 @@ export const App = () => {
     setScreen('game');
   };
   const roundSize = world
-    ? Math.min(settings.countriesPerRound, countriesOf(world, settings.continent).length)
+    ? Math.min(
+        settings.countriesPerRound,
+        quizPool(world, settings.continent, { skipTiny: settings.skipTiny }).length,
+      )
     : settings.countriesPerRound;
 
   return (
@@ -64,8 +67,9 @@ export const App = () => {
               key={round}
               world={world}
               continent={settings.continent}
-              secondsPerQuestion={settings.secondsPerQuestion}
+              secondsPerQuestion={settings.timeLimitOn ? settings.secondsPerQuestion : null}
               countriesPerRound={settings.countriesPerRound}
+              skipTiny={settings.skipTiny}
               onFinish={(done) => {
                 setAnswers(done);
                 setScreen('results');

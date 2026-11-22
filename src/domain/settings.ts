@@ -7,11 +7,18 @@ export type Settings = {
   countriesPerRound: number;
   /** The continent last played, preselected on the Home screen. */
   continent: Continent;
+  /** Off: no countdown and no timeout, a question waits for a tap. */
+  timeLimitOn: boolean;
+  /** On: a round leaves out the places under 1,000 km² (`quizPool`). */
+  skipTiny: boolean;
 };
 
 export const DEFAULT_SECONDS_PER_QUESTION = 10;
 export const DEFAULT_COUNTRIES_PER_ROUND = 10;
 export const DEFAULT_CONTINENT: Continent = 'europe';
+// The game as it was before the switches (Phase 5), so an update changes nobody's game.
+export const DEFAULT_TIME_LIMIT_ON = true;
+export const DEFAULT_SKIP_TINY = false;
 
 const isContinent = (value: unknown): value is Continent =>
   typeof value === 'string' && (CONTINENTS as readonly string[]).includes(value);
@@ -30,6 +37,8 @@ export const defaultSettings = (browserLanguages: readonly string[]): Settings =
   secondsPerQuestion: DEFAULT_SECONDS_PER_QUESTION,
   countriesPerRound: DEFAULT_COUNTRIES_PER_ROUND,
   continent: DEFAULT_CONTINENT,
+  timeLimitOn: DEFAULT_TIME_LIMIT_ON,
+  skipTiny: DEFAULT_SKIP_TINY,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -44,6 +53,9 @@ const readWhole = (
   typeof value === 'number' && Number.isFinite(value)
     ? Math.round(Math.min(bounds.max, Math.max(bounds.min, value)))
     : fallback;
+
+const readSwitch = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback;
 
 /**
  * Valid settings from anything: a stored value someone edited by hand, a value
@@ -70,5 +82,7 @@ export const sanitizeSettings = (
       defaults.countriesPerRound,
     ),
     continent: isContinent(raw.continent) ? raw.continent : defaults.continent,
+    timeLimitOn: readSwitch(raw.timeLimitOn, defaults.timeLimitOn),
+    skipTiny: readSwitch(raw.skipTiny, defaults.skipTiny),
   };
 };

@@ -1,6 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import raw from '../data/world.json?raw';
-import { countriesOf, parseWorld, type Continent, type WorldTopology } from '../domain/world';
+import { countriesOf, parseWorld, quizPool, type Continent, type WorldTopology } from '../domain/world';
 import type { GlobeViewProps } from '../components/GlobeView';
 import { RIGHT_COLOR, WRONG_COLOR } from '../components/globeLook';
 import { GameScreen } from '../screens/GameScreen';
@@ -9,10 +9,11 @@ import { renderWithLanguage } from './renderWithLanguage';
 // jsdom has no WebGL: the globe becomes one button per country of its
 // continent, plus one that stands for globe.gl finishing its first frame.
 vi.mock('../components/GlobeView', () => ({
-  GlobeView: ({ world, continent, onPick, onReady, highlight }: GlobeViewProps) => (
+  GlobeView: ({ world, continent, skipTiny, onPick, onReady, highlight }: GlobeViewProps) => (
     <div
       data-testid="globe"
       data-continent={continent}
+      data-skip-tiny={String(skipTiny)}
       data-correct={highlight?.correctId ?? ''}
       data-correct-color={highlight?.correctColor ?? ''}
       data-picked={highlight?.pickedId ?? ''}
@@ -49,9 +50,22 @@ const advance = (ms: number) =>
     vi.advanceTimersByTime(ms);
   });
 
-type Options = { continent?: Continent; seconds?: number; countries?: number; ready?: boolean };
+type Options = {
+  continent?: Continent;
+  /** `null`: the time limit switched off. */
+  seconds?: number | null;
+  countries?: number;
+  skipTiny?: boolean;
+  ready?: boolean;
+};
 
-const setup = ({ continent = 'europe', seconds = 10, countries = 3, ready = true }: Options = {}) => {
+const setup = ({
+  continent = 'europe',
+  seconds = 10,
+  countries = 3,
+  skipTiny = false,
+  ready = true,
+}: Options = {}) => {
   const onFinish = vi.fn();
   const onQuit = vi.fn();
   renderWithLanguage(
@@ -60,6 +74,7 @@ const setup = ({ continent = 'europe', seconds = 10, countries = 3, ready = true
       continent={continent}
       secondsPerQuestion={seconds}
       countriesPerRound={countries}
+      skipTiny={skipTiny}
       onFinish={onFinish}
       onQuit={onQuit}
     />,
@@ -252,5 +267,64 @@ describe('GameScreen: the end of the round', () => {
     fireEvent.click(screen.getByRole('button', { name: 'quit the game' }));
     expect(onQuit).toHaveBeenCalledOnce();
     expect(onFinish).not.toHaveBeenCalled();
+  });
+});
+
+describe('GameScreen: without a time limit', () => {
+  it('shows no countdown and waits for the tap, however long it takes', () => {
+    const { onFinish } = setup({ seconds: null, countries: 1 });
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    advance(10 * 60_000);
+    expect(verdict()).not.toBeInTheDocument();
+    const id = target();
+    tap(id);
+    expect(verdict()).toHaveAttribute('data-verdict', 'correct');
+    advance(1_000);
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith([
+      { targetId: id, pickedId: id, correct: true, elapsedMs: 10 * 60_000 },
+    ]);
+  });
+
+  it('still waits for the globe before the clock that times the answer starts', () => {
+    const { onFinish } = setup({ seconds: null, countries: 1, ready: false });
+    advance(5_000);
+    fireEvent.click(screen.getByTestId('globe-ready'));
+    advance(3_000);
+    tap(target());
+    advance(1_000);
+    expect(onFinish.mock.calls[0][0][0].elapsedMs).toBe(3_000);
+  });
+});
+
+describe('GameScreen: without the tiny countries', () => {
+  it('asks only the places of 1,000 km² or more, and shortens the round to them', () => {
+    // Oceania keeps 9 of its 25 places (world.test.ts).
+    setup({ continent: 'oceania', countries: 50, skipTiny: true });
+    expect(globe()).toHaveAttribute('data-skip-tiny', 'true');
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 9');
+    const seen = new Set<string>();
+    for (let i = 0; i < 9; i++) {
+      seen.add(target());
+      tap(target());
+      advance(1_000);
+    }
+    expect([...seen].sort()).toEqual(
+      quizPool(world, 'oceania', { skipTiny: true })
+        .map((c) => c.id)
+        .sort(),
+    );
+  });
+
+  it('treats a tap on a place left out like a tap outside the continent: nothing happens', () => {
+    setup({ skipTiny: true });
+    tap('MLT');
+    tap('VAT');
+    expect(verdict()).not.toBeInTheDocument();
+    expect(screen.getByTestId('game-score')).toHaveTextContent('Score: 0');
+  });
+
+  it('tells the globe the switch is off by default', () => {
+    setup();
+    expect(globe()).toHaveAttribute('data-skip-tiny', 'false');
   });
 });

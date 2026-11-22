@@ -2,7 +2,7 @@
  * One round, as a pure reducer. The screen owns the clock: it measures the
  * time of a pick and dispatches `timeout` when the countdown runs out. The
  * reducer never reads the time itself, so every rule below is testable with
- * plain data.
+ * plain data. A round without a time limit has no countdown and no timeout.
  */
 
 export type Phase = 'asking' | 'feedback' | 'finished';
@@ -18,9 +18,10 @@ export type Answer = {
 
 export type GameState = {
   questionIds: readonly string[];
-  /** The round's continent: the only countries a pick can name. */
+  /** The round's places (`quizPool`): the only ones a pick can name. */
   continentIds: ReadonlySet<string>;
-  timeLimitMs: number;
+  /** `null`: no time limit, the question waits for a tap. */
+  timeLimitMs: number | null;
   /** The question being asked, or shown in feedback. */
   index: number;
   phase: Phase;
@@ -40,7 +41,7 @@ export const startGame = ({
 }: {
   questionIds: readonly string[];
   continentIds: Iterable<string>;
-  timeLimitMs: number;
+  timeLimitMs: number | null;
 }): GameState => {
   const continent = new Set(continentIds);
   if (questionIds.length === 0) throw new Error('startGame: no questions');
@@ -48,9 +49,9 @@ export const startGame = ({
     throw new Error('startGame: a question is asked twice');
   }
   for (const id of questionIds) {
-    if (!continent.has(id)) throw new Error(`startGame: ${id} is not on the round's continent`);
+    if (!continent.has(id)) throw new Error(`startGame: ${id} is not one of the round's places`);
   }
-  if (!(Number.isFinite(timeLimitMs) && timeLimitMs > 0)) {
+  if (timeLimitMs !== null && !(Number.isFinite(timeLimitMs) && timeLimitMs > 0)) {
     throw new Error(`startGame: bad time limit ${timeLimitMs}`);
   }
   return {
@@ -95,6 +96,8 @@ export const gameReducer = (state: GameState, event: GameEvent): GameState => {
       if (state.phase !== 'asking' || !state.continentIds.has(event.id)) return state;
       return answer(state, event.id, event.elapsedMs);
     case 'timeout':
+      // Not a late event to shrug off: without a limit, no clock should run.
+      if (state.timeLimitMs === null) throw new Error('gameReducer: a timeout in a round with no time limit');
       if (state.phase !== 'asking') return state;
       return answer(state, null, state.timeLimitMs);
     case 'next':

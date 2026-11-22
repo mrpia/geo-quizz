@@ -11,20 +11,56 @@ type Props = {
   settings: Settings;
   /**
    * How many countries the round will have: the setting, or fewer when the
-   * continent has fewer (South America has 14).
+   * round has fewer places (South America has 14; Oceania without the tiny
+   * countries has 9).
    */
   roundSize: number;
-  /** A changed continent or language, to save at once. */
+  /** A changed continent, switch or language, to save at once. */
   onChange: (next: Settings) => void;
   onStart: () => void;
   onOpenSettings: () => void;
   onOpenAbout: () => void;
 };
 
+type SwitchProps = {
+  label: string;
+  on: boolean;
+  testId: string;
+  onToggle: () => void;
+};
+
+/**
+ * An on/off switch the size of a finger: the whole row is the target. The
+ * thumb's side says on or off, so the colour is never the only sign.
+ */
+const Switch = ({ label, on, testId, onToggle }: SwitchProps) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    className="home__switch"
+    data-testid={testId}
+    onClick={onToggle}
+  >
+    <span className="home__switch-label">{label}</span>
+    <span className="home__switch-track" aria-hidden="true">
+      <span className="home__switch-thumb" />
+    </span>
+  </button>
+);
+
 export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSettings, onOpenAbout }: Props) => {
   const { t, lang } = useI18n();
   const titleId = useId();
   const seconds = settings.secondsPerQuestion;
+
+  const summary = settings.timeLimitOn
+    ? roundSize === 1
+      ? t('home.summaryOne', { seconds })
+      : t('home.summary', { count: roundSize, seconds })
+    : roundSize === 1
+      ? t('home.summaryOneUntimed')
+      : t('home.summaryUntimed', { count: roundSize });
 
   return (
     <div className="screen home">
@@ -72,11 +108,21 @@ export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSetti
           ))}
         </div>
       </section>
-      <p className="home__summary">
-        {roundSize === 1
-          ? t('home.summaryOne', { seconds })
-          : t('home.summary', { count: roundSize, seconds })}
-      </p>
+      <section className="screen__panel home__switches">
+        <Switch
+          label={t('home.timeLimit')}
+          on={settings.timeLimitOn}
+          testId="switch-time-limit"
+          onToggle={() => onChange({ ...settings, timeLimitOn: !settings.timeLimitOn })}
+        />
+        <Switch
+          label={t('home.skipTiny')}
+          on={settings.skipTiny}
+          testId="switch-skip-tiny"
+          onToggle={() => onChange({ ...settings, skipTiny: !settings.skipTiny })}
+        />
+      </section>
+      <p className="home__summary">{summary}</p>
       <button type="button" className="screen__primary-btn" data-testid="start-game" onClick={onStart}>
         <span aria-hidden="true">🌍</span> {t('home.start')}
       </button>

@@ -4,7 +4,7 @@ import { GlobeView } from '../components/GlobeView';
 import { NO_HIGHLIGHT, RIGHT_COLOR, WRONG_COLOR, type GlobeHighlight } from '../components/globeLook';
 import { feedbackMs, gameReducer, score, startGame, type Answer } from '../domain/game';
 import { drawRound } from '../domain/round';
-import { countriesOf, type Continent, type World } from '../domain/world';
+import { quizPool, type Continent, type World } from '../domain/world';
 import { countryName } from '../i18n';
 import { useI18n } from '../i18n/I18nContext';
 import './GameScreen.css';
@@ -12,8 +12,11 @@ import './GameScreen.css';
 type Props = {
   world: World;
   continent: Continent;
-  secondsPerQuestion: number;
+  /** `null`: the time limit is off, so there is no countdown and no timeout. */
+  secondsPerQuestion: number | null;
   countriesPerRound: number;
+  /** Leave out the tiny places (`quizPool`): not asked, and grey on the globe. */
+  skipTiny: boolean;
   /** Every answer, in order, once the last one has been shown. */
   onFinish: (answers: readonly Answer[]) => void;
   /** The ✕: back home, the round dropped. */
@@ -36,16 +39,17 @@ export const GameScreen = ({
   continent,
   secondsPerQuestion,
   countriesPerRound,
+  skipTiny,
   onFinish,
   onQuit,
 }: Props) => {
   const { t, lang } = useI18n();
   const [game, dispatch] = useReducer(gameReducer, null, () => {
-    const ids = countriesOf(world, continent).map((c) => c.id);
+    const ids = quizPool(world, continent, { skipTiny }).map((c) => c.id);
     return startGame({
       questionIds: drawRound(ids, countriesPerRound),
       continentIds: ids,
-      timeLimitMs: secondsPerQuestion * 1000,
+      timeLimitMs: secondsPerQuestion === null ? null : secondsPerQuestion * 1000,
     });
   });
   /** `performance.now()` when the current question appeared; null until the globe is drawn. */
@@ -166,14 +170,23 @@ export const GameScreen = ({
           {t('game.score', { score: score(game) })}
         </span>
       </header>
-      <Countdown
-        limitMs={game.timeLimitMs}
-        startedAt={askedAt}
-        stoppedAtMs={game.phase === 'asking' ? null : (game.answers.at(-1)?.elapsedMs ?? 0)}
-        onTimeout={onTimeout}
-      />
+      {game.timeLimitMs !== null && (
+        <Countdown
+          limitMs={game.timeLimitMs}
+          startedAt={askedAt}
+          stoppedAtMs={game.phase === 'asking' ? null : (game.answers.at(-1)?.elapsedMs ?? 0)}
+          onTimeout={onTimeout}
+        />
+      )}
       <main className="game__globe">
-        <GlobeView world={world} continent={continent} highlight={highlight} onPick={onPick} onReady={onReady} />
+        <GlobeView
+          world={world}
+          continent={continent}
+          skipTiny={skipTiny}
+          highlight={highlight}
+          onPick={onPick}
+          onReady={onReady}
+        />
       </main>
     </div>
   );

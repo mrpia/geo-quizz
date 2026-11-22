@@ -18,6 +18,24 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.3.0',
+    date: '2026-11-22',
+    changes: {
+      fr: [
+        "Nouveau : sur l'accueil, l'interrupteur « Limite de temps » coupe le chrono. Chaque pays attend alors que tu le trouves, sans te presser.",
+        'Nouveau : « Sans les tout petits pays » laisse de côté les pays minuscules comme la Cité du Vatican, Monaco ou Malte. Ils restent gris, et la carte a beaucoup moins de cercles.',
+      ],
+      de: [
+        'Neu: Auf der Startseite schaltet « Zeitlimit » den Timer aus. Dann wartet jedes Land, bis du es gefunden hast, ganz ohne Eile.',
+        'Neu: « Ohne die ganz kleinen Länder » lässt winzige Länder wie Vatikanstadt, Monaco oder Malta weg. Sie bleiben grau, und auf der Karte gibt es viel weniger Kreise.',
+      ],
+      en: [
+        'New: on the home screen, the "Time limit" switch turns the timer off. Each country then waits until you find it, no rush.',
+        'New: "Without the tiny countries" leaves out very small countries like Vatican City, Monaco or Malta. They stay grey, and the map has far fewer rings.',
+      ],
+    },
+  },
+  {
     version: '0.2.0',
     date: '2026-11-21',
     changes: {

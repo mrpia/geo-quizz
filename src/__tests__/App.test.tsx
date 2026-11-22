@@ -99,6 +99,57 @@ describe('App: Home', () => {
   });
 });
 
+describe('App: the two switches on Home', () => {
+  const isOn = (testId: string) => screen.getByTestId(testId).getAttribute('aria-checked');
+
+  it('starts with the time limit on and every place asked', async () => {
+    stored({ language: 'en' });
+    await open();
+    expect(isOn('switch-time-limit')).toBe('true');
+    expect(isOn('switch-skip-tiny')).toBe('false');
+  });
+
+  it('remembers both, for the next visit', async () => {
+    stored({ language: 'en' });
+    const { unmount } = await open();
+    click('switch-time-limit');
+    click('switch-skip-tiny');
+    expect(saved()).toMatchObject({ timeLimitOn: false, skipTiny: true });
+    unmount();
+    await open();
+    expect(isOn('switch-time-limit')).toBe('false');
+    expect(isOn('switch-skip-tiny')).toBe('true');
+  });
+
+  it('counts and plays only the places of 1,000 km² or more when the tiny ones are left out', async () => {
+    stored({ language: 'en', continent: 'oceania' });
+    await open();
+    expect(screen.getByText('10 countries · 10 s each')).toBeInTheDocument();
+    click('switch-skip-tiny');
+    // Oceania keeps 9 of its 25 places (world.test.ts).
+    expect(screen.getByText('9 countries · 10 s each')).toBeInTheDocument();
+    click('start-game');
+    click('globe-ready');
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 9');
+    expect(world.byId.get(target())!.properties.areaKm2).toBeGreaterThanOrEqual(1_000);
+  });
+
+  it('plays without a countdown when the time limit is off, and keeps the seconds for later', async () => {
+    stored({ language: 'en', secondsPerQuestion: 20 });
+    await open();
+    click('switch-time-limit');
+    expect(screen.getByText('10 countries · no time limit')).toBeInTheDocument();
+    click('start-game');
+    click('globe-ready');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    advance(60_000);
+    expect(screen.queryByTestId('game-verdict')).not.toBeInTheDocument();
+    click('quit-game');
+    click('switch-time-limit');
+    expect(screen.getByText('10 countries · 20 s each')).toBeInTheDocument();
+  });
+});
+
 describe('App: a round', () => {
   it('plays a round from Home to the results, then again on the same continent', async () => {
     stored({ language: 'en', countriesPerRound: 2, continent: 'africa' });

@@ -8,6 +8,9 @@ const settings: Settings = {
   secondsPerQuestion: 10,
   countriesPerRound: 10,
   continent: 'asia',
+  // Not the defaults, so a Save that dropped them would show.
+  timeLimitOn: false,
+  skipTiny: true,
 };
 
 const setup = (lang = settings.language) => {

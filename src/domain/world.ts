@@ -72,3 +72,24 @@ export const parseWorld = (topology: WorldTopology): World => {
 
 export const countriesOf = (world: World, continent: Continent): Country[] =>
   world.countries.filter((c) => c.properties.continent === continent);
+
+/**
+ * Below this area a place counts as tiny, and the "without the tiny
+ * countries" switch leaves it out: the owner's cut-off of 2026-11-22
+ * (docs/plan.md, Phase 5). Compared with `areaKm2`.
+ */
+export const TINY_BELOW_KM2 = 1_000;
+
+export type PoolOptions = {
+  /** Leave out the places under `TINY_BELOW_KM2`. */
+  skipTiny: boolean;
+};
+
+/**
+ * The places a round on `continent` is about: the ones it asks, colours,
+ * rings and lets the player tap. A place left out looks and acts like land
+ * outside the continent. Everything that needs the round's places calls
+ * this, so the draw, the globe and Home's count cannot disagree.
+ */
+export const quizPool = (world: World, continent: Continent, { skipTiny }: PoolOptions): Country[] =>
+  countriesOf(world, continent).filter((c) => !skipTiny || c.properties.areaKm2 >= TINY_BELOW_KM2);
