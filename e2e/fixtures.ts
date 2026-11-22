@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import type {} from '../src/components/geoQuizzHook';
 import type { Settings } from '../src/domain/settings';
-import { countriesOf, parseWorld, type Continent, type WorldTopology } from '../src/domain/world';
+import { parseWorld, quizPool, type Continent, type WorldTopology } from '../src/domain/world';
 
 /**
  * Deterministic rounds for the specs (the pattern of math-quizz's
@@ -21,8 +21,8 @@ const world = parseWorld(
 
 /**
  * The values `Math.random` must return, in order, for `drawRound`
- * (src/domain/round.ts, a partial Fisher–Yates over the continent's
- * countries in data order) to ask `ids`, in that order.
+ * (src/domain/round.ts, a partial Fisher–Yates over the round's places,
+ * `quizPool`, in data order) to ask `ids`, in that order.
  */
 const randomsFor = (pool: readonly string[], ids: readonly string[]): number[] => {
   const items = [...pool];
@@ -51,7 +51,8 @@ export const seedRound = async (
   settings: Partial<Settings> & { continent: Continent },
   ids: readonly string[],
 ) => {
-  const pool = countriesOf(world, settings.continent).map((c) => c.id);
+  // The same pool as the game's, so the switch for the tiny countries is honoured.
+  const pool = quizPool(world, settings.continent, { skipTiny: settings.skipTiny ?? false }).map((c) => c.id);
   draws.set(page, randomsFor(pool, ids));
   await page.addInitScript(
     ({ key, settings }) => {

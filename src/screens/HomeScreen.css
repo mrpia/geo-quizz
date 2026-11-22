@@ -34,3 +34,65 @@
   color: var(--color-fg-muted);
   text-align: center;
 }
+
+/* The two switches (plan, Phase 5): each row is one button, as tall as Start. */
+.home__switches {
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.home__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.home__switch-track {
+  position: relative;
+  flex: none;
+  width: 3.5rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--color-chip-border);
+  transition: background-color 0.15s;
+}
+
+.home__switch-thumb {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+  transition: transform 0.15s;
+}
+
+.home__switch[aria-checked='true'] .home__switch-track {
+  background: var(--color-accent);
+}
+
+.home__switch[aria-checked='true'] .home__switch-thumb {
+  transform: translateX(1.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__switch-track,
+  .home__switch-thumb {
+    transition: none;
+  }
+}

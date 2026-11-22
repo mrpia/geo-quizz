@@ -46,6 +46,28 @@ describe('startGame', () => {
       startGame({ questionIds: ['FRA'], continentIds: CONTINENT, timeLimitMs }),
     ).toThrow(/time limit/);
   });
+
+  it('plays without a time limit when given null', () => {
+    const state = startGame({ questionIds: ['FRA'], continentIds: CONTINENT, timeLimitMs: null });
+    expect(state.timeLimitMs).toBeNull();
+    expect(state.phase).toBe('asking');
+  });
+});
+
+describe('gameReducer, without a time limit', () => {
+  const untimed = () =>
+    startGame({ questionIds: ['FRA', 'DEU'], continentIds: CONTINENT, timeLimitMs: null });
+
+  it('waits as long as the player needs', () => {
+    const state = play(untimed(), pick('FRA', 95_000));
+    expect(state.answers).toEqual([
+      { targetId: 'FRA', pickedId: 'FRA', correct: true, elapsedMs: 95_000 },
+    ]);
+  });
+
+  it('throws on a timeout, which nothing should send', () => {
+    expect(() => gameReducer(untimed(), TIMEOUT)).toThrow(/no time limit/);
+  });
 });
 
 describe('gameReducer', () => {
