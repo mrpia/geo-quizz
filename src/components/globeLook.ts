@@ -56,6 +56,16 @@ export const ALTITUDE = {
 export const RIGHT_COLOR = '#22c55e';
 export const WRONG_COLOR = '#ef4444';
 
+/**
+ * The place selected in Explore (plan, Phase 6): the answer's green, since
+ * on both screens green marks the place whose name is in the header. It
+ * stays green under the mouse, as the answer does. The owner's call of
+ * 2026-11-22: in 0.4.0 it kept its pink with only an outline, and the amber,
+ * outlined place under the mouse looked more chosen than the one named. The
+ * white outline stays, so the colour is not the only cue.
+ */
+export const SELECTED_COLOR = RIGHT_COLOR;
+
 /** What the game shows after a tap or a timeout. */
 export type GlobeHighlight = {
   /** The country the player tapped, drawn in `pickedColor`. */
@@ -78,17 +88,20 @@ export const NO_HIGHLIGHT: GlobeHighlight = {
 };
 
 /**
- * A country's cap colour. The answer and a wrong pick win over hover, which
- * only applies to the continent's countries (the only ones a tap can pick).
+ * A country's cap colour. The answer, a wrong pick and the place selected in
+ * Explore win over hover, which only applies to the round's places (the only
+ * ones a tap can pick).
  */
 export const capColorOf = (
   country: Country,
   inPlay: boolean,
   hoverId: string | null,
   highlight: GlobeHighlight,
+  selectedId: string | null = null,
 ): string => {
   if (country.id === highlight.correctId) return highlight.correctColor;
   if (country.id === highlight.pickedId) return highlight.pickedColor;
+  if (country.id === selectedId) return SELECTED_COLOR;
   if (!inPlay) return OTHER_LAND_COLOR;
   if (country.id === hoverId) return HOVER_COLOR;
   const color = MAP_PALETTE[country.properties.color - 1];

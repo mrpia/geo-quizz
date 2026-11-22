@@ -18,6 +18,21 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.4.1',
+    date: '2026-11-22',
+    changes: {
+      fr: [
+        'Quand tu explores, le pays que tu as touché devient vert. Celui sous la souris reste orange : tu ne peux plus les confondre.',
+      ],
+      de: [
+        'Beim Entdecken wird das Land, das du angetippt hast, grün. Das Land unter der Maus bleibt orange, so verwechselst du sie nicht mehr.',
+      ],
+      en: [
+        "In Explore, the country you tapped turns green. The one under the mouse stays orange, so you can't mix them up any more.",
+      ],
+    },
+  },
+  {
     version: '0.4.0',
     date: '2026-11-22',
     changes: {
