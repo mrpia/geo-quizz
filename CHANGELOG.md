@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
 ### Added
 
 - Two switches on Home. **Time limit**: off, a round has no countdown and
@@ -120,6 +122,7 @@ countries on the globe against the clock.
   WebGL), also in CI: the globe, taps and rings, a 3-country round played with
   a mouse and with a finger, and a round whose timer runs out.
 
-[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mrpia/geo-quizz/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mrpia/geo-quizz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mrpia/geo-quizz/releases/tag/v0.1.0
