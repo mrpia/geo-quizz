@@ -325,8 +325,9 @@ As built, where it differs from the text below:
   `modern-ally-102412` now has four sites: its default one (math-quizz),
   `arena-maze`, `arena-race` and `geo-quizz-mrpia`. The CNAME already at the
   registrar, `geo-quizz.mrpia.ch → geo-quizz.web.app.`, named the other
-  project's site; the custom domain step replaced it with the records the
-  console showed for `geo-quizz-mrpia`.
+  project's site. The owner pointed it at `geo-quizz-mrpia.web.app.`, as
+  `math-quizz` and `arena-maze` point at their sites, and added the custom
+  domain to `geo-quizz-mrpia` in the console.
 - **No SPA rewrite** (owner's decision, 2026-11-21). The app has no routes,
   and its build uses relative asset paths (`base: './'`). On math-quizz, which
   has the same pair, `/a/b` serves index.html whose `./assets/` script
@@ -355,6 +356,24 @@ As built, where it differs from the text below:
   the map-wait fix and the restyle that were unreleased on `main`.
 - Bundle: the first chunk is 263 KB (83 KB gzip), from 254 KB (80 KB) on
   `main`, for the strings and release notes in three languages.
+- **Live checks, 2026-11-21**, with `curl -I` on geo-quizz-mrpia.web.app:
+  `/` and `/index.html` are `no-cache`; the files under `/assets/` are
+  `public, max-age=31536000, immutable`, the map data included (779 KB, 211
+  KB over the wire with brotli); `/nope` and `/a/b` are 404s. A missing
+  `/assets/` file is a 404 that also carries the immutable header, because
+  Firebase applies headers by path; a hashed name that 404s belongs to a
+  removed build and is never asked for again. In Chromium on the live site,
+  the globe was ready 8.1 s after Start (software WebGL), and no request
+  left the origin.
+- **https://geo-quizz.mrpia.ch** served the app about five minutes after the
+  owner added the domain, at first from only some of Firebase's servers (the
+  others still sent the `*.firebaseapp.com` certificate), and from all of
+  them a few minutes later. The certificate names `geo-quizz.mrpia.ch`, from
+  Google Trust Services, and Firebase renews it. The same `curl -I` checks
+  on the domain give the same headers; `http://` redirects to `https://`
+  with a 301. The deployed build is the tree of `fd9b1fa`, tagged `v0.2.0`.
+- **Not done in this phase**: the tablet check in item 6. It needs the
+  owner's tablet, and stays open until they report.
 
 Same setup as math-quizz (see its
 `docs/superpowers/specs/2026-06-13-firebase-hosting-design.md`).
