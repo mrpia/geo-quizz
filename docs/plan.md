@@ -433,8 +433,8 @@ As built, where it differs from the text below or from the brief:
 - Bundle: the first chunk is 264 KB (84 KB gzip), from 263 KB (83 KB) on
   `main`.
 - **0.3.0** ships with this phase (owner's decision, 2026-11-22).
-- **Changed after the merge**, by the owner on 2026-11-22, after 0.4.1
-  (unreleased):
+- **Changed after the merge**, by the owner on 2026-11-22, and released
+  as **0.5.0** (owner's decision), after Explore's 0.4.0 and 0.4.1:
   - **Each switch that is on makes the game harder.** The second switch
     reads "Tiny countries" (FR "Tout petits pays", DE "Ganz kleine
     Länder"), a noun like "Time limit", and on means the tiny places are
