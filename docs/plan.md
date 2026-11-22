@@ -39,6 +39,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 2 — Globe view**
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
+- [ ] **Phase 5 — Two switches on Home: time limit, no tiny countries**
 
 ### Phase 0 — Foundation (done)
 
@@ -391,7 +392,72 @@ Same setup as math-quizz (see its
 
 Done when: https://geo-quizz.mrpia.ch serves the app over HTTPS.
 
+### Phase 5 — Two switches on Home: time limit, no tiny countries
+
+The first part of BACKLOG's "Easy mode", asked for by the owner on
+2026-11-22 as two independent switches rather than one "easy mode".
+
+Decided with the owner on 2026-11-22:
+
+- **Time limit, on or off.** On is the game as it was. Off means no
+  countdown bar and no timeout: a question waits until the player taps. The
+  seconds-per-country setting stays and applies whenever the limit is on.
+- **Leave out the tiny places, on or off.** On, a round asks only the
+  continent's places of at least **1,000 km²** (`areaKm2`, the spherical
+  area of the shape; see `docs/data.md`). Rejected: "sovereign states
+  only", which keeps Vatican, Monaco, San Marino, Liechtenstein, Malta and
+  Andorra; "needs a tap ring at the start view", which changes with the
+  screen size; and 5,000 km², as too strict.
+- **A place left out looks and acts like land outside the continent**:
+  grey, no tap ring, and a tap on it does nothing (it is not a wrong
+  answer). Rejected: keeping it pink and ringed, with a tap counting as
+  wrong. The point is fewer rings.
+- Both are settings, saved like the continent and read back through
+  `sanitizeSettings`.
+
+What the cut-off leaves, measured on 2026-11-22: Europe 50 → 40, Africa
+60 → 55, Asia 54 → 49, North America 38 → 18, South America 14 → 14,
+Oceania 25 → 9. Europe loses Vatican, Monaco, Guernsey, San Marino, Jersey,
+Liechtenstein, Malta, Andorra, the Isle of Man and Åland; the Faroe Islands
+(1,036 km²) stay. Small sovereign states go too: the Seychelles and São
+Tomé and Príncipe (986 km²) in Africa; Singapore, Bahrain and the Maldives
+in Asia; seven Caribbean states, Barbados and Grenada among them; and seven
+in Oceania, Kiribati (938 km²) and Tonga among them. Siachen Glacier
+(2,118 km²) stays. Oceania keeps fewer places than a default round
+of 10, so the round is shortened as South America's already is. Rings at
+the start views, estimated for a 700 px tall globe with the rule in
+`src/domain/view.ts`: Europe 16 → 6, North America 30 → 10, Oceania
+22 → 6.
+
+1. Settings `timeLimitOn` (default on) and `skipTiny` (default off). A
+   stored value from 0.2.0, which has neither, reads as the defaults, so
+   nobody's game changes on update. Anything but a boolean reads as the
+   default.
+2. One pure function decides a round's places: `quizPool(world, continent,
+   { skipTiny })` in `src/domain/world.ts`, with the cut-off as a named
+   constant. Every user of the pool calls it: the draw (`GameScreen`), the
+   colours, rings, hover and picking (`GlobeView`), Home's count (`App`),
+   and the scripted draw of the e2e fixtures. `world.test.ts` pins the
+   counts above and the places dropped from Europe.
+3. A round without a time limit: `GameState.timeLimitMs` is `null`; the
+   game screen shows no countdown; a `timeout` event throws, since nothing
+   can send one. The results rows keep the seconds taken; "time's up" can no
+   longer occur.
+4. Home: two switches between the continent panel and the summary line
+   (`role="switch"`, the whole row is the target, as tall as a continent
+   button). With the limit off, the summary says "no time limit" in place
+   of the seconds.
+5. Strings in all three languages, the About screen's "your data" panel
+   included, since it lists what the settings hold.
+6. e2e, only for what needs the real globe: a Europe round without the
+   tiny places draws no ring on them, and a click on one picks nothing.
+   Colours, rings and picks are also covered in Vitest with the fake globe.
+7. `CHANGELOG.md`; BACKLOG's "Easy mode" trimmed to what is still unbuilt.
+
+Done when: both switches survive a reload, a round with each of them on and
+off plays to the results, and both suites pass in CI.
+
 ## Later (not planned yet)
 
-Ideas beyond Phase 4 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
+Ideas beyond Phase 5 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
 there into a phase here once the owner decides to build it.
