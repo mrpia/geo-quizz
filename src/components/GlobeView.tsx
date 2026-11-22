@@ -359,15 +359,14 @@ export const GlobeView = ({
     }
   }, [globe, world, correctId]);
 
-  // The outlines (the answer's, the selected place's, the hovered country's)
-  // and the ✅ and ❌
-  // marks: SVG over the canvas, placed again after every frame globe.gl
-  // renders so they move with the globe (src/domain/outline.ts). React puts
-  // a mark in the page in the same render as the verdict; globe.gl's own
-  // HTML layer would only show it a few frames later, which on a slow device
-  // can outlast a 1 s answer. A layout effect, so nothing paints before it
-  // has its place. Prepared shapes are kept, as the mouse comes back to the
-  // same countries.
+  // The outlines (the answer's, the selected place's, the hovered
+  // country's) and the ✅ and ❌ marks: SVG over the canvas, placed again
+  // after every frame globe.gl renders so they move with the globe
+  // (src/domain/outline.ts). React puts a mark in the page in the same
+  // render as the verdict; globe.gl's own HTML layer would only show it a
+  // few frames later, which on a slow device can outlast a 1 s answer. A
+  // layout effect, so nothing paints before it has its place. Prepared
+  // shapes are kept, as the mouse comes back to the same countries.
   const outlineRef = useRef<SVGSVGElement>(null);
   const prepared = useMemo(() => new Map<string, OutlineShape>(), [globe, world]);
   useLayoutEffect(() => {
