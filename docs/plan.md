@@ -40,6 +40,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
+- [ ] **Phase 6 — Explore mode** (0.4.0)
 
 ### Phase 0 — Foundation (done)
 
@@ -496,7 +497,55 @@ the start views, estimated for a 700 px tall globe with the rule in
 Done when: both switches survive a reload, a round with each of them on and
 off plays to the results, and both suites pass in CI.
 
+### Phase 6 — Explore mode
+
+BACKLOG's "Explore mode", asked for by the owner on 2026-11-22: the globe
+with no question, no countdown and no score, where a tap on a place shows its
+name. For learning a continent before being tested on it.
+
+Decided with the owner on 2026-11-22:
+
+- **No question, no countdown, no score.** The time limit and the round size
+  don't apply.
+- **A tap or a click shows the name; a hover doesn't.**
+- **The places are a round's**: `quizPool(world, continent, { skipTiny })`,
+  so the continent chosen on Home and the "Without the tiny countries"
+  switch both apply. Pink places and their rings answer a tap; grey land and
+  the sea do nothing. Rejected: any land on the globe, which would need tap
+  rings for tiny places all over the world, something the game never draws.
+- **In the app's language only.** Rejected: the name in all three languages
+  at once (BACKLOG's question).
+- **An "Explore" button on Home, under Start**, opens the globe on the
+  chosen continent; a 🏠 goes back. Rejected: a third switch that changes
+  what Start does, as too easy to miss.
+
+Left to the build and recorded under As built: how the name shows, what a
+tap on the sea does, and whether the mouse hover stays.
+
+1. `GlobeView` gets a selected place (`selectedId`): outlined in white like
+   the answer, but with no ✅, no colour of its own and no camera flight.
+   The game's highlight is unchanged. Tested with the fake globe in
+   `GlobeView.test.tsx`.
+2. `ExploreScreen`: the globe on the chosen continent, under a header with
+   🏠, a prompt, and the name of the place last tapped in large type. Taps
+   before the map is drawn are ignored, as in a round. Tested with
+   `GlobeView` mocked.
+3. Home: an "Explore" button under Start. `App` gets an `explore` screen,
+   which waits for the map as the game does.
+4. Strings in FR (tu), DE (du, Swiss spelling) and EN: the button and the
+   prompt.
+5. e2e, for real clicks: on Europe, a click on France shows its name and
+   its outline and no mark, a click on Poland replaces it, a click on the
+   sea keeps it, and 🏠 goes home.
+6. Release 0.4.0: `package.json`, `CHANGELOG.md`, the player's note in
+   `releaseNotes.ts`. BACKLOG's "Explore mode" goes: flags stay under "Show
+   the country's flag", and the three languages at once were rejected.
+
+Done when: Explore opens from Home on the chosen continent with the switch
+honoured, a tap names the place in the app's language, nothing is timed or
+scored, 🏠 goes back, and both suites pass in CI.
+
 ## Later (not planned yet)
 
-Ideas beyond Phase 5 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
+Ideas beyond Phase 6 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
 there into a phase here once the owner decides to build it.
