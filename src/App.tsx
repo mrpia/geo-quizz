@@ -5,6 +5,7 @@ import type { Settings } from './domain/settings';
 import { quizPool, type World } from './domain/world';
 import { LanguageProvider, useI18n } from './i18n/I18nContext';
 import { AboutScreen } from './screens/AboutScreen';
+import { ExploreScreen } from './screens/ExploreScreen';
 import { GameScreen } from './screens/GameScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
@@ -12,7 +13,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { loadSettings, saveSettings } from './storage/settingsStore';
 import './App.css';
 
-type Screen = 'home' | 'game' | 'results' | 'settings' | 'about';
+type Screen = 'home' | 'game' | 'explore' | 'results' | 'settings' | 'about';
 
 /**
  * The screen state machine, as in math-quizz: one screen at a time, chosen
@@ -57,6 +58,7 @@ export const App = () => {
             roundSize={roundSize}
             onChange={save}
             onStart={play}
+            onExplore={() => setScreen('explore')}
             onOpenSettings={() => setScreen('settings')}
             onOpenAbout={() => setScreen('about')}
           />
@@ -79,6 +81,17 @@ export const App = () => {
           ) : (
             <MapStatus failed={failed} onHome={home} />
           ))}
+        {screen === 'explore' &&
+          (world ? (
+            <ExploreScreen
+              world={world}
+              continent={settings.continent}
+              skipTiny={settings.skipTiny}
+              onHome={home}
+            />
+          ) : (
+            <MapStatus failed={failed} onHome={home} />
+          ))}
         {screen === 'results' && world && (
           <ResultsScreen world={world} answers={answers} onReplay={play} onHome={home} />
         )}
@@ -89,7 +102,7 @@ export const App = () => {
   );
 };
 
-/** Shown in place of the game while the map loads, or when it could not. */
+/** Shown in place of the game or Explore while the map loads, or when it could not. */
 const MapStatus = ({ failed, onHome }: { failed: boolean; onHome: () => void }) => {
   const { t } = useI18n();
   return (

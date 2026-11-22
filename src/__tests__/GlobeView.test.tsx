@@ -519,6 +519,70 @@ describe('GlobeView: the ✅ and ❌ marks', () => {
   });
 });
 
+/**
+ * Explore mode (docs/plan.md, Phase 6): the place whose name is shown is
+ * outlined, and nothing else. It judges nothing, so no ✅ or ❌ and no colour
+ * of its own, and it was just tapped, so the camera stays where it is.
+ */
+describe('GlobeView: the selected place', () => {
+  const draw = () => act(() => live().scene.onAfterRender?.());
+  const hover = (id: string) => {
+    fireEvent.pointerMove(live().canvas, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
+    act(() => (live().props.get('onPolygonHover') as (d: object | null) => void)(datum(id)));
+  };
+
+  it('outlines it after every frame, with no mark and no colour of its own', async () => {
+    const { rerender } = await setup();
+    rerender({ selectedId: 'FRA' });
+    const outline = screen.getByTestId('globe-selected-outline');
+    expect(outline).toHaveAttribute('data-id', 'FRA');
+    draw();
+    for (const path of outline.querySelectorAll('path')) expect(path.getAttribute('d')).toMatch(/^M[\d.-]+ [\d.-]+L/);
+    expect(screen.queryAllByTestId('globe-mark')).toEqual([]);
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
+    expect(screen.queryByTestId('globe-answer-outline')).not.toBeInTheDocument();
+  });
+
+  it('moves the outline to the next place selected, and drops it when there is none', async () => {
+    const { rerender } = await setup({ selectedId: 'FRA' });
+    rerender({ selectedId: 'POL' });
+    expect(screen.getAllByTestId('globe-selected-outline').map((o) => o.dataset.id)).toEqual(['POL']);
+    rerender({ selectedId: null });
+    expect(screen.queryByTestId('globe-selected-outline')).not.toBeInTheDocument();
+    expect(() => draw()).not.toThrow();
+  });
+
+  it('leaves the camera alone, even at the edge of the frame', async () => {
+    const { rerender } = await setup({ continent: 'asia' });
+    // The setup of "flies over the answer…": Japan is in view, past the margin.
+    live().pov = { lat: 30, lng: 100, altitude: 0.3 };
+    expect(pointOf('JPN').x).toBeGreaterThan(1180 - FRAME_MARGIN_PX);
+    const flights = live().flights.length;
+    rerender({ selectedId: 'JPN' });
+    expect(live().flights).toHaveLength(flights);
+  });
+
+  it('turns amber under the mouse like any other place, with one outline', async () => {
+    await setup({ selectedId: 'FRA' });
+    hover('FRA');
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(HOVER_COLOR);
+    expect(screen.queryByTestId('globe-hover-outline')).not.toBeInTheDocument();
+    expect(screen.getByTestId('globe-selected-outline')).toHaveAttribute('data-id', 'FRA');
+    // The mouse moves on: both are outlined, only the one under it is amber.
+    hover('ESP');
+    expect(screen.getByTestId('globe-hover-outline')).toHaveAttribute('data-id', 'ESP');
+    expect(screen.getByTestId('globe-selected-outline')).toHaveAttribute('data-id', 'FRA');
+    expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('FRA')));
+  });
+
+  it('throws for a place that does not exist', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { rerender } = await setup();
+    expect(() => rerender({ selectedId: 'XXX' })).toThrow(/XXX/);
+    logged.mockRestore();
+  });
+});
+
 describe('GlobeView: picks', () => {
   it('picks the country under a tap', async () => {
     const { onPick } = await setup();

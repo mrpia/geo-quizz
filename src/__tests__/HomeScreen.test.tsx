@@ -13,7 +13,13 @@ const settings: Settings = {
 };
 
 const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = settings.language) => {
-  const handlers = { onChange: vi.fn(), onStart: vi.fn(), onOpenSettings: vi.fn(), onOpenAbout: vi.fn() };
+  const handlers = {
+    onChange: vi.fn(),
+    onStart: vi.fn(),
+    onExplore: vi.fn(),
+    onOpenSettings: vi.fn(),
+    onOpenAbout: vi.fn(),
+  };
   const all = { settings, roundSize: 10, ...handlers, ...props };
   renderWithLanguage(<HomeScreen {...all} />, lang);
   return handlers;
@@ -91,6 +97,16 @@ describe('HomeScreen', () => {
     expect(onStart).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'settings' }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+
+  it('offers Explore under Start', () => {
+    const { onExplore, onStart } = setup({}, 'de');
+    const start = screen.getByRole('button', { name: /Starten/ });
+    const explore = screen.getByRole('button', { name: /Entdecken/ });
+    expect(start.compareDocumentPosition(explore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(explore);
+    expect(onExplore).toHaveBeenCalledOnce();
+    expect(onStart).not.toHaveBeenCalled();
   });
 
   it('opens the About screen with ℹ️', () => {

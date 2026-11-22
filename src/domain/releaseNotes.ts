@@ -18,6 +18,21 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.4.0',
+    date: '2026-11-22',
+    changes: {
+      fr: [
+        "Nouveau : sur l'accueil, « Explorer » ouvre le globe sans question et sans chrono. Touche un pays pour voir son nom. Tu peux ainsi découvrir un continent avant de jouer.",
+      ],
+      de: [
+        'Neu: Auf der Startseite öffnet « Entdecken » den Globus ohne Frage und ohne Timer. Tippe auf ein Land, um seinen Namen zu sehen. So lernst du einen Kontinent kennen, bevor du spielst.',
+      ],
+      en: [
+        'New: on the home screen, "Explore" opens the globe with no question and no timer. Tap a country to see its name. That way you can get to know a continent before you play.',
+      ],
+    },
+  },
+  {
     version: '0.3.0',
     date: '2026-11-22',
     changes: {

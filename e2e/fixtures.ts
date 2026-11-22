@@ -38,6 +38,14 @@ const randomsFor = (pool: readonly string[], ids: readonly string[]): number[] =
 /** The draw each page will be armed with when its round starts. */
 const draws = new WeakMap<Page, number[]>();
 
+/** Starts the page with these settings saved, in English unless they say otherwise. */
+export const seedSettings = async (page: Page, settings: Partial<Settings>) => {
+  await page.addInitScript(
+    ({ key, settings }) => localStorage.setItem(key, JSON.stringify(settings)),
+    { key: SETTINGS_KEY, settings: { language: 'en', ...settings } },
+  );
+};
+
 /**
  * Starts the page with these settings and a round that asks `ids`. The
  * scripted values are armed only when `startRound` presses Start: React DOM
@@ -54,15 +62,12 @@ export const seedRound = async (
   // The same pool as the game's, so the switch for the tiny countries is honoured.
   const pool = quizPool(world, settings.continent, { skipTiny: settings.skipTiny ?? false }).map((c) => c.id);
   draws.set(page, randomsFor(pool, ids));
-  await page.addInitScript(
-    ({ key, settings }) => {
-      localStorage.setItem(key, JSON.stringify(settings));
-      const own = Math.random.bind(Math);
-      const armed = window as unknown as { __geoQuizzDraw?: number[] };
-      Math.random = () => armed.__geoQuizzDraw?.shift() ?? own();
-    },
-    { key: SETTINGS_KEY, settings: { language: 'en', ...settings, countriesPerRound: ids.length } },
-  );
+  await seedSettings(page, { ...settings, countriesPerRound: ids.length });
+  await page.addInitScript(() => {
+    const own = Math.random.bind(Math);
+    const armed = window as unknown as { __geoQuizzDraw?: number[] };
+    Math.random = () => armed.__geoQuizzDraw?.shift() ?? own();
+  });
 };
 
 /** From Home to the first question, once the globe is drawn. */
@@ -75,6 +80,13 @@ export const startRound = async (page: Page) => {
     }, draw);
   }
   await page.getByTestId('start-game').click();
+  await expect(page.getByTestId('globe')).toHaveAttribute('data-state', 'ready', { timeout: 45_000 });
+};
+
+/** From Home to Explore (docs/plan.md, Phase 6), once the globe is drawn. */
+export const openExplore = async (page: Page) => {
+  await page.goto('/');
+  await page.getByTestId('start-explore').click();
   await expect(page.getByTestId('globe')).toHaveAttribute('data-state', 'ready', { timeout: 45_000 });
 };
 
