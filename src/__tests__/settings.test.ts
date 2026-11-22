@@ -42,12 +42,15 @@ describe('defaultSettings', () => {
       countriesPerRound: 10,
       continent: 'europe',
       timeLimitOn: true,
-      skipTiny: false,
+      skipTiny: true,
     });
   });
 
-  it('plays the game as it was before the switches: timed, every place asked', () => {
-    expect(defaultSettings(['en'])).toMatchObject({ timeLimitOn: true, skipTiny: false });
+  it('starts a new player timed, with the tiny countries left out', () => {
+    // The owner's call, 2026-11-22: each switch on Home that is on makes the
+    // game harder, and a new player starts with "Time limit" on and "Tiny
+    // countries" off (docs/plan.md, Phase 5).
+    expect(defaultSettings(['en'])).toMatchObject({ timeLimitOn: true, skipTiny: true });
   });
 });
 
@@ -61,7 +64,7 @@ describe('sanitizeSettings', () => {
       countriesPerRound: 42,
       continent: 'oceania',
       timeLimitOn: false,
-      skipTiny: true,
+      skipTiny: false,
     };
     expect(sanitizeSettings(valid, browser)).toEqual(valid);
   });
@@ -80,7 +83,7 @@ describe('sanitizeSettings', () => {
       countriesPerRound: 10,
       continent: 'europe',
       timeLimitOn: true,
-      skipTiny: false,
+      skipTiny: true,
     });
     expect(
       sanitizeSettings(
@@ -104,20 +107,27 @@ describe('sanitizeSettings', () => {
     }
   });
 
-  it('reads settings saved by 0.2.0, which had no switches, as the game they played', () => {
+  it('keeps a choice saved by 0.3.0 to 0.4.1, when the switch read "Without the tiny countries"', () => {
+    // The stored field kept its name and its meaning; only the switch on Home
+    // shows it the other way round, as "Tiny countries".
+    expect(sanitizeSettings({ skipTiny: false }, browser).skipTiny).toBe(false);
+    expect(sanitizeSettings({ skipTiny: true }, browser).skipTiny).toBe(true);
+  });
+
+  it('reads settings saved by 0.2.0, which had no switches, with the defaults for them', () => {
     const saved = { language: 'de', secondsPerQuestion: 15, countriesPerRound: 5, continent: 'asia' };
-    expect(sanitizeSettings(saved, browser)).toEqual({ ...saved, timeLimitOn: true, skipTiny: false });
+    expect(sanitizeSettings(saved, browser)).toEqual({ ...saved, timeLimitOn: true, skipTiny: true });
   });
 
   it('takes only a boolean for a switch', () => {
-    expect(sanitizeSettings({ timeLimitOn: false, skipTiny: true }, browser)).toMatchObject({
+    expect(sanitizeSettings({ timeLimitOn: false, skipTiny: false }, browser)).toMatchObject({
       timeLimitOn: false,
-      skipTiny: true,
+      skipTiny: false,
     });
     for (const value of ['false', 0, 1, 'true', null, {}]) {
       expect(sanitizeSettings({ timeLimitOn: value, skipTiny: value }, browser)).toMatchObject({
         timeLimitOn: true,
-        skipTiny: false,
+        skipTiny: true,
       });
     }
   });
@@ -165,7 +175,7 @@ describe('settingsStore', () => {
       countriesPerRound: 20,
       continent: 'asia',
       timeLimitOn: false,
-      skipTiny: true,
+      skipTiny: false,
     } as const;
     saveSettings(settings, browser);
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual(settings);

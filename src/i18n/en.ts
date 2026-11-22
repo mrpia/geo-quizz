@@ -12,7 +12,7 @@ export const en: Record<TranslationKey, string> = {
   'home.summaryUntimed': '{count} countries · no time limit',
   'home.summaryOneUntimed': '1 country · no time limit',
   'home.timeLimit': 'Time limit',
-  'home.skipTiny': 'Without the tiny countries',
+  'home.tinyCountries': 'Tiny countries',
   'home.start': 'Start',
   'home.explore': 'Explore',
   'home.settingsAria': 'settings',

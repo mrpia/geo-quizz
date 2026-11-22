@@ -125,10 +125,11 @@ export const HomeScreen = ({
           testId="switch-time-limit"
           onToggle={() => onChange({ ...settings, timeLimitOn: !settings.timeLimitOn })}
         />
+        {/* On asks the tiny countries: every switch that is on makes the game harder. */}
         <Switch
-          label={t('home.skipTiny')}
-          on={settings.skipTiny}
-          testId="switch-skip-tiny"
+          label={t('home.tinyCountries')}
+          on={!settings.skipTiny}
+          testId="switch-tiny"
           onToggle={() => onChange({ ...settings, skipTiny: !settings.skipTiny })}
         />
       </section>

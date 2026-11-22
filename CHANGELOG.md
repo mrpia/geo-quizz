@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The second switch on Home reads **Tiny countries** and is on when they
+  are asked, so each switch that is on makes the game harder, in a round as
+  in Explore. A choice saved by 0.3.0 to 0.4.1 stays as it was and shows
+  the other way round.
+- A new player starts with the time limit on and the tiny countries off.
+  Settings saved by 0.2.0, which have no such choice, read the same way.
+- After a wrong answer or a timeout, the answer stays on screen for 4 s
+  instead of 2.5 s, with or without the time limit. A right answer still
+  moves on after 1 s.
+
 ## [0.4.1] - 2026-11-22
 
 ### Changed

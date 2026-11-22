@@ -38,11 +38,18 @@ const randomsFor = (pool: readonly string[], ids: readonly string[]): number[] =
 /** The draw each page will be armed with when its round starts. */
 const draws = new WeakMap<Page, number[]>();
 
-/** Starts the page with these settings saved, in English unless they say otherwise. */
+/**
+ * What a seeded page has unless the spec says otherwise: English, and every
+ * place asked. A new player starts without the tiny countries, but several
+ * specs click on Malta, Vatican City or Heard Island.
+ */
+const SEEDED = { language: 'en', skipTiny: false } as const;
+
+/** Starts the page with these settings saved, over `SEEDED`. */
 export const seedSettings = async (page: Page, settings: Partial<Settings>) => {
   await page.addInitScript(
     ({ key, settings }) => localStorage.setItem(key, JSON.stringify(settings)),
-    { key: SETTINGS_KEY, settings: { language: 'en', ...settings } },
+    { key: SETTINGS_KEY, settings: { ...SEEDED, ...settings } },
   );
 };
 
@@ -59,10 +66,11 @@ export const seedRound = async (
   settings: Partial<Settings> & { continent: Continent },
   ids: readonly string[],
 ) => {
-  // The same pool as the game's, so the switch for the tiny countries is honoured.
-  const pool = quizPool(world, settings.continent, { skipTiny: settings.skipTiny ?? false }).map((c) => c.id);
+  // The pool from the settings the page is given, so the draw and the game agree.
+  const seeded = { ...SEEDED, ...settings, countriesPerRound: ids.length };
+  const pool = quizPool(world, seeded.continent, { skipTiny: seeded.skipTiny }).map((c) => c.id);
   draws.set(page, randomsFor(pool, ids));
-  await seedSettings(page, { ...settings, countriesPerRound: ids.length });
+  await seedSettings(page, seeded);
   await page.addInitScript(() => {
     const own = Math.random.bind(Math);
     const armed = window as unknown as { __geoQuizzDraw?: number[] };
@@ -154,7 +162,7 @@ export type Feedback = {
 /**
  * Records, from inside the page and on every frame, what each question's
  * feedback showed, keyed by the country asked. A right answer stays up for
- * 1 s and a wrong one for 2.5 s; a loaded machine running a handful of
+ * 1 s and a wrong one for 4 s; a loaded machine running a handful of
  * Playwright assertions one after the other misses that, so specs read this
  * record instead, at their own pace.
  */

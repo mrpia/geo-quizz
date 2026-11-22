@@ -173,11 +173,12 @@ describe('currentTargetId', () => {
 });
 
 describe('feedback', () => {
-  // Plan, Phase 3: the next question comes 1 s after a right answer, and
-  // 2.5 s after a wrong one or a timeout, to leave time to see the answer.
-  it('pauses 1 s after a right answer and 2.5 s otherwise', () => {
+  // Plan, Phase 3: the next question comes 1 s after a right answer. After a
+  // wrong one or a timeout the answer stays 4 s, to leave time to find it on
+  // the globe (2.5 s until the owner lengthened it on 2026-11-22, Phase 5).
+  it('pauses 1 s after a right answer and 4 s otherwise', () => {
     expect(feedbackMs({ targetId: 'FRA', pickedId: 'FRA', correct: true, elapsedMs: 900 })).toBe(1_000);
-    expect(feedbackMs({ targetId: 'FRA', pickedId: 'DEU', correct: false, elapsedMs: 900 })).toBe(2_500);
-    expect(feedbackMs({ targetId: 'FRA', pickedId: null, correct: false, elapsedMs: 10_000 })).toBe(2_500);
+    expect(feedbackMs({ targetId: 'FRA', pickedId: 'DEU', correct: false, elapsedMs: 900 })).toBe(4_000);
+    expect(feedbackMs({ targetId: 'FRA', pickedId: null, correct: false, elapsedMs: 10_000 })).toBe(4_000);
   });
 });

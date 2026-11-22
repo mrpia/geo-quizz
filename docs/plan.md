@@ -433,6 +433,27 @@ As built, where it differs from the text below or from the brief:
 - Bundle: the first chunk is 264 KB (84 KB gzip), from 263 KB (83 KB) on
   `main`.
 - **0.3.0** ships with this phase (owner's decision, 2026-11-22).
+- **Changed after the merge**, by the owner on 2026-11-22, after 0.4.1
+  (unreleased):
+  - **Each switch that is on makes the game harder.** The second switch
+    reads "Tiny countries" (FR "Tout petits pays", DE "Ganz kleine
+    Länder"), a noun like "Time limit", and on means the tiny places are
+    asked. Rejected: "With the tiny countries", and "territories" in place
+    of "countries". The stored setting is still `skipTiny`, with the same
+    meaning; Home shows it the other way round, so choices saved by 0.3.0
+    to 0.4.1 read as they were without a migration. Explore (Phase 6) reads
+    the same setting, so the switch applies there too.
+  - **A new player starts with the time limit on and the tiny countries
+    off** (`DEFAULT_SKIP_TINY` is now true). Rejected: both on, the game as
+    it was, and both off. Settings saved by 0.2.0 have no `skipTiny`, so
+    they read as the new default too, and those players lose the tiny
+    places until they switch them back on.
+  - **A wrong answer or a timeout stays up 4 s, from 2.5 s** (Phase 3),
+    with or without the time limit: finding the answer on the globe takes
+    as long either way. The owner first asked for it in timed rounds only.
+    A right answer still moves on after 1 s.
+  - The e2e fixtures seed `skipTiny: false` unless a spec says otherwise,
+    since several specs click on Malta, Vatican City or Heard Island.
 
 The first part of BACKLOG's "Easy mode", asked for by the owner on
 2026-11-22 as two independent switches rather than one "easy mode".

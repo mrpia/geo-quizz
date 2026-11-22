@@ -57,26 +57,32 @@ describe('HomeScreen', () => {
     expect(screen.getByText('1 pays · 10 s')).toBeInTheDocument();
   });
 
-  it('offers two switches, set as saved', () => {
+  it('offers two switches, set as saved, each one on for the harder game', () => {
+    // docs/plan.md, Phase 5: "Tiny countries" on means they are asked, so it
+    // shows the stored `skipTiny` the other way round.
+    setup({ settings: { ...settings, timeLimitOn: true, skipTiny: false } });
+    expect(screen.getByRole('switch', { name: 'Time limit' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Tiny countries' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows both off for the easier game', () => {
     setup({ settings: { ...settings, timeLimitOn: false, skipTiny: true } });
     expect(screen.getByRole('switch', { name: 'Time limit' })).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByRole('switch', { name: 'Without the tiny countries' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(screen.getByRole('switch', { name: 'Tiny countries' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('names the switches in the language of the app', () => {
     setup({ settings: { ...settings, language: 'de' } }, 'de');
     expect(screen.getByRole('switch', { name: 'Zeitlimit' })).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'Ohne die ganz kleinen Länder' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Ganz kleine Länder' })).toBeInTheDocument();
   });
 
   it('saves each switch on its own, at once', () => {
     const { onChange } = setup();
     fireEvent.click(screen.getByTestId('switch-time-limit'));
     expect(onChange).toHaveBeenLastCalledWith({ ...settings, timeLimitOn: false });
-    fireEvent.click(screen.getByTestId('switch-skip-tiny'));
+    // On (the tiny countries asked) to off: they are left out.
+    fireEvent.click(screen.getByTestId('switch-tiny'));
     expect(onChange).toHaveBeenLastCalledWith({ ...settings, skipTiny: true });
     expect(onChange).toHaveBeenCalledTimes(2);
   });

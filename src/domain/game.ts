@@ -113,7 +113,8 @@ export const score = (state: GameState): number =>
 
 /**
  * How long an answer stays on screen before the next question (plan,
- * Phase 3): 1 s after a right answer, 2.5 s after a wrong one or a timeout,
- * long enough to find the answer on the globe.
+ * Phase 3): 1 s after a right answer, 4 s after a wrong one or a timeout,
+ * long enough to find the answer on the globe. The same with or without a
+ * time limit. It was 2.5 s until the owner lengthened it on 2026-11-22.
  */
-export const feedbackMs = (answer: Answer): number => (answer.correct ? 1_000 : 2_500);
+export const feedbackMs = (answer: Answer): number => (answer.correct ? 1_000 : 4_000);

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import raw from '../data/world.json?raw';
-import { countriesOf, parseWorld, type WorldTopology } from '../domain/world';
+import { parseWorld, quizPool, type WorldTopology } from '../domain/world';
 import type { GlobeViewProps } from '../components/GlobeView';
 import { loadWorld } from '../data/loadWorld';
 import { SETTINGS_KEY } from '../storage/settingsStore';
@@ -83,7 +83,8 @@ describe('App: Home', () => {
   });
 
   it("counts the round's countries from the continent once the map is loaded", async () => {
-    stored({ language: 'en', countriesPerRound: 50, continent: 'south-america' });
+    // Every place asked: Europe has 50 with the tiny countries, 40 without.
+    stored({ language: 'en', countriesPerRound: 50, continent: 'south-america', skipTiny: false });
     await open();
     expect(screen.getByText('14 countries · 10 s each')).toBeInTheDocument();
     click('continent-europe');
@@ -102,32 +103,33 @@ describe('App: Home', () => {
 describe('App: the two switches on Home', () => {
   const isOn = (testId: string) => screen.getByTestId(testId).getAttribute('aria-checked');
 
-  it('starts with the time limit on and every place asked', async () => {
+  it('starts a new player with the time limit on and the tiny countries off', async () => {
     stored({ language: 'en' });
     await open();
     expect(isOn('switch-time-limit')).toBe('true');
-    expect(isOn('switch-skip-tiny')).toBe('false');
+    expect(isOn('switch-tiny')).toBe('false');
   });
 
   it('remembers both, for the next visit', async () => {
     stored({ language: 'en' });
     const { unmount } = await open();
     click('switch-time-limit');
-    click('switch-skip-tiny');
-    expect(saved()).toMatchObject({ timeLimitOn: false, skipTiny: true });
+    click('switch-tiny');
+    expect(saved()).toMatchObject({ timeLimitOn: false, skipTiny: false });
     unmount();
     await open();
     expect(isOn('switch-time-limit')).toBe('false');
-    expect(isOn('switch-skip-tiny')).toBe('true');
+    expect(isOn('switch-tiny')).toBe('true');
   });
 
-  it('counts and plays only the places of 1,000 km² or more when the tiny ones are left out', async () => {
+  it('counts and plays only the places of 1,000 km² or more until the tiny countries are switched on', async () => {
     stored({ language: 'en', continent: 'oceania' });
     await open();
-    expect(screen.getByText('10 countries · 10 s each')).toBeInTheDocument();
-    click('switch-skip-tiny');
     // Oceania keeps 9 of its 25 places (world.test.ts).
     expect(screen.getByText('9 countries · 10 s each')).toBeInTheDocument();
+    click('switch-tiny');
+    expect(screen.getByText('10 countries · 10 s each')).toBeInTheDocument();
+    click('switch-tiny');
     click('start-game');
     click('globe-ready');
     expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 9');
@@ -160,9 +162,10 @@ describe('App: a round', () => {
     const first = target();
     click(`tap-${first}`);
     advance(1_000);
-    const wrong = countriesOf(world, 'africa').find((c) => c.id !== target())!.id;
+    // One of the places a new player is asked: a tap on a tiny one would do nothing.
+    const wrong = quizPool(world, 'africa', { skipTiny: true }).find((c) => c.id !== target())!.id;
     click(`tap-${wrong}`);
-    advance(2_500);
+    advance(4_000);
 
     expect(screen.getByTestId('results-score')).toHaveTextContent('1 / 2');
     const rows = screen.getAllByTestId('results-row');
@@ -180,7 +183,7 @@ describe('App: a round', () => {
     click('start-game');
     click('globe-ready');
     advance(3_100);
-    advance(2_500);
+    advance(4_000);
     expect(within(screen.getAllByTestId('results-row')[0]).getByRole('img', { name: 'wrong' })).toBeInTheDocument();
     click('results-home');
     expect(screen.getByTestId('start-game')).toBeInTheDocument();
@@ -205,10 +208,11 @@ describe('App: explore', () => {
   it('explores the continent chosen, with the switch for the tiny countries, and goes home', async () => {
     stored({ language: 'en', continent: 'oceania' });
     await open();
-    click('switch-skip-tiny');
+    // A new player has the tiny countries off; switched on, Explore has them too.
+    click('switch-tiny');
     click('start-explore');
     expect(screen.getByTestId('globe')).toHaveAttribute('data-continent', 'oceania');
-    expect(screen.getByTestId('globe')).toHaveAttribute('data-skip-tiny', 'true');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-skip-tiny', 'false');
     click('globe-ready');
     click('tap-AUS');
     expect(name()).toHaveTextContent('Australia');
@@ -218,7 +222,7 @@ describe('App: explore', () => {
     expect(name()).toHaveTextContent('Australia');
     click('explore-home');
     expect(screen.getByTestId('start-game')).toBeInTheDocument();
-    expect(saved()).toMatchObject({ continent: 'oceania', skipTiny: true });
+    expect(saved()).toMatchObject({ continent: 'oceania', skipTiny: false });
   });
 
   it('starts with no name each time', async () => {
