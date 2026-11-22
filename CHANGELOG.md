@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Two switches on Home. **Time limit**: off, a round has no countdown and
+  each country waits for a tap; the seconds per country apply again when it
+  goes back on. **Without the tiny countries**: on, a round leaves out the
+  places under 1,000 km², such as Vatican City, Monaco, Malta and most small
+  islands. They turn grey like land outside the continent, get no tap ring,
+  and a tap on them does nothing. Europe keeps 40 of its 50 places and
+  Oceania 9 of 25, so a round of 10 there has 9 countries.
+- Both switches are saved with the other settings. Settings saved by 0.2.0
+  read as before: time limit on, every place asked.
+
+### Changed
+
+- With the time limit off, the summary on Home says "no time limit" in place
+  of the seconds.
+- The About screen's "your data" lists the two switches among the settings
+  this browser keeps.
+
 ## [0.2.0] - 2026-11-21
 
 The first version online, at https://geo-quizz.mrpia.ch.

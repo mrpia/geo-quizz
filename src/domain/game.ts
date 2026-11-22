@@ -49,7 +49,7 @@ export const startGame = ({
     throw new Error('startGame: a question is asked twice');
   }
   for (const id of questionIds) {
-    if (!continent.has(id)) throw new Error(`startGame: ${id} is not on the round's continent`);
+    if (!continent.has(id)) throw new Error(`startGame: ${id} is not one of the round's places`);
   }
   if (timeLimitMs !== null && !(Number.isFinite(timeLimitMs) && timeLimitMs > 0)) {
     throw new Error(`startGame: bad time limit ${timeLimitMs}`);

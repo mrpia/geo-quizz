@@ -41,17 +41,17 @@ choice next to the continents.
 
 ### Easy mode
 
-Fewer, easier places.
+Fewer, easier places. Two switches on Home cover the first part since
+Phase 5: the time limit can be turned off, and the places under 1,000 km²
+can be left out (docs/plan.md, Phase 5). Still open:
 
-- Leave out places below an area threshold (`areaKm2` is in the data) and/or
-  everything that is not a sovereign state (`kind` is Natural Earth's TYPE).
-  This is also where Siachen Glacier, the Ashmore and Cartier Islands or Heard
-  Island would drop out of the quiz.
-- An area threshold behaves the same on every device. "Needs a tap ring at the
-  continent view" would match what the player sees, but changes with the
-  screen size.
-- Maybe a longer default timer too.
-- Check per continent that enough places remain for a round.
+- A longer default timer, for when the time limit is on.
+- Leaving out what is not a sovereign state (`kind` is Natural Earth's
+  TYPE). Rejected on 2026-11-22 as the rule for the tiny places, since it
+  keeps Vatican City, Monaco, San Marino, Liechtenstein, Malta and Andorra,
+  but it could still be a filter of its own. With the area switch on,
+  Siachen Glacier (2,118 km², "Indeterminate") is still asked; the Ashmore
+  and Cartier Islands and Heard Island are not.
 
 ### Explore mode
 

@@ -39,7 +39,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 2 — Globe view**
 - [x] **Phase 3 — Screens and game flow** (first playable version, 0.1.0)
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
-- [ ] **Phase 5 — Two switches on Home: time limit, no tiny countries**
+- [x] **Phase 5 — Two switches on Home: time limit, no tiny countries**
 
 ### Phase 0 — Foundation (done)
 
@@ -392,7 +392,26 @@ Same setup as math-quizz (see its
 
 Done when: https://geo-quizz.mrpia.ch serves the app over HTTPS.
 
-### Phase 5 — Two switches on Home: time limit, no tiny countries
+### Phase 5 — Two switches on Home: time limit, no tiny countries (done)
+
+As built, where it differs from the text below or from the brief:
+
+- **Named for what it leaves out.** The brief's working name was "only the
+  largest territories". The switch reads "Without the tiny countries" (FR
+  "Sans les tout petits pays", DE "Ohne die ganz kleinen Länder") and the
+  setting is `skipTiny`: it keeps 40 of Europe's 50 places, so it drops the
+  tiny ones rather than keeping the largest. It says "countries" for every
+  place, as the rest of the game does. The other switch reads "Time limit"
+  (FR "Limite de temps", DE "Zeitlimit"). Both labels are a proposal for the
+  owner to review.
+- With the limit off, the summary reads "10 countries · no time limit"
+  (FR "sans limite de temps", DE "ohne Zeitlimit").
+- The e2e spec plays its round with the time limit off too, and checks that
+  no countdown is drawn. It cannot click on Malta's land: at the Europe view
+  Malta is under a pixel across. What it shows is that the ring which takes
+  such a click without the switch (the bullseye spec) is gone.
+- Bundle: the first chunk is 264 KB (84 KB gzip), from 263 KB (83 KB) on
+  `main`.
 
 The first part of BACKLOG's "Easy mode", asked for by the owner on
 2026-11-22 as two independent switches rather than one "easy mode".
@@ -444,7 +463,7 @@ the start views, estimated for a 700 px tall globe with the rule in
    can send one. The results rows keep the seconds taken; "time's up" can no
    longer occur.
 4. Home: two switches between the continent panel and the summary line
-   (`role="switch"`, the whole row is the target, as tall as a continent
+   (`role="switch"`, the whole row is the target, as tall as the Start
    button). With the limit off, the summary says "no time limit" in place
    of the seconds.
 5. Strings in all three languages, the About screen's "your data" panel
