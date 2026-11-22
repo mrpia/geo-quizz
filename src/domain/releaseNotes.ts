@@ -18,6 +18,24 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.5.0',
+    date: '2026-11-22',
+    changes: {
+      fr: [
+        '« Tout petits pays » remplace « Sans les tout petits pays » : allumé, la Cité du Vatican, Monaco, Malte et les autres pays minuscules sont dans le jeu. Chaque interrupteur allumé rend le jeu plus difficile.',
+        "Quand tu te trompes ou que le temps est écoulé, la bonne réponse reste 4 secondes à l'écran, pour que tu aies le temps de la trouver sur le globe.",
+      ],
+      de: [
+        '« Ganz kleine Länder » ersetzt « Ohne die ganz kleinen Länder »: Eingeschaltet sind Vatikanstadt, Monaco, Malta und die anderen winzigen Länder dabei. Jeder eingeschaltete Schalter macht das Spiel schwieriger.',
+        'Wenn du dich irrst oder die Zeit um ist, bleibt die richtige Antwort 4 Sekunden lang stehen, damit du sie auf dem Globus findest.',
+      ],
+      en: [
+        '"Tiny countries" replaces "Without the tiny countries": switched on, Vatican City, Monaco, Malta and the other very small countries are in the game. Every switch you turn on makes the game harder.',
+        'When you get one wrong or the time runs out, the right answer stays on screen for 4 seconds, so you have time to find it on the globe.',
+      ],
+    },
+  },
+  {
     version: '0.4.1',
     date: '2026-11-22',
     changes: {
