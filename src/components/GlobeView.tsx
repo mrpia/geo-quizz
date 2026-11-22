@@ -58,6 +58,12 @@ export type GlobeViewProps = {
    * frame (plan, Phase 3).
    */
   highlight?: GlobeHighlight;
+  /**
+   * Explore mode (plan, Phase 6): the place whose name is shown, outlined in
+   * white. Unlike the answer it gets no mark and no colour of its own, and
+   * the camera never moves for it: the player just tapped it.
+   */
+  selectedId?: string | null;
   /** A tap on a place of the round (`quizPool`). Taps anywhere else, drags and pinches call nothing. */
   onPick: (id: string) => void;
   /**
@@ -71,8 +77,8 @@ export type GlobeViewProps = {
 
 type PolygonDatum = { country: Country };
 type RingDatum = { id: string; lat: number; lng: number };
-/** An outlined country: the answer, or the one under the mouse. */
-type Outline = { kind: 'answer' | 'hover'; id: string };
+/** An outlined country: the answer, the one selected in Explore, or the one under the mouse. */
+type Outline = { kind: 'answer' | 'selected' | 'hover'; id: string };
 /** ✅ on the answer, ❌ on a wrong pick (the owner's call, 2026-11-21). */
 type Mark = { id: string; mark: 'right' | 'wrong' };
 
@@ -115,6 +121,7 @@ export const GlobeView = ({
   continent,
   skipTiny,
   highlight = NO_HIGHLIGHT,
+  selectedId = null,
   onPick,
   onReady,
   resetToken = 0,
@@ -158,6 +165,10 @@ export const GlobeView = ({
     );
   }, [world, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor]);
 
+  if (selectedId !== null && !world.byId.has(selectedId)) {
+    throw new Error(`GlobeView: no country ${JSON.stringify(selectedId)} to select`);
+  }
+
   const countryById = useCallback(
     (id: string, use: string): Country => {
       const country = world.byId.get(id);
@@ -177,15 +188,17 @@ export const GlobeView = ({
     [correctId, pickedId],
   );
 
-  // The answer, and the country under the mouse unless it is the answer or
-  // the pick, which keep their own look.
-  const hoverOutlineId = hoverId && hoverId !== correctId && hoverId !== pickedId ? hoverId : null;
+  // The answer, the place selected in Explore, and the country under the
+  // mouse unless it is one of those or the pick: one outline per country.
+  const hoverOutlineId =
+    hoverId && hoverId !== correctId && hoverId !== pickedId && hoverId !== selectedId ? hoverId : null;
   const outlines = useMemo<Outline[]>(
     () => [
       ...(correctId ? [{ kind: 'answer' as const, id: correctId }] : []),
+      ...(selectedId ? [{ kind: 'selected' as const, id: selectedId }] : []),
       ...(hoverOutlineId ? [{ kind: 'hover' as const, id: hoverOutlineId }] : []),
     ],
-    [correctId, hoverOutlineId],
+    [correctId, selectedId, hoverOutlineId],
   );
 
   // A string, so zooming that leaves the same countries ringed changes nothing.
@@ -346,7 +359,8 @@ export const GlobeView = ({
     }
   }, [globe, world, correctId]);
 
-  // The outlines (the answer's, the hovered country's) and the ✅ and ❌
+  // The outlines (the answer's, the selected place's, the hovered country's)
+  // and the ✅ and ❌
   // marks: SVG over the canvas, placed again after every frame globe.gl
   // renders so they move with the globe (src/domain/outline.ts). React puts
   // a mark in the page in the same render as the verdict; globe.gl's own

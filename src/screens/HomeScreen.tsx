@@ -18,6 +18,8 @@ type Props = {
   /** A changed continent, switch or language, to save at once. */
   onChange: (next: Settings) => void;
   onStart: () => void;
+  /** Explore mode (plan, Phase 6): the same globe, no question. */
+  onExplore: () => void;
   onOpenSettings: () => void;
   onOpenAbout: () => void;
 };
@@ -49,7 +51,15 @@ const Switch = ({ label, on, testId, onToggle }: SwitchProps) => (
   </button>
 );
 
-export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSettings, onOpenAbout }: Props) => {
+export const HomeScreen = ({
+  settings,
+  roundSize,
+  onChange,
+  onStart,
+  onExplore,
+  onOpenSettings,
+  onOpenAbout,
+}: Props) => {
   const { t, lang } = useI18n();
   const titleId = useId();
   const seconds = settings.secondsPerQuestion;
@@ -125,6 +135,9 @@ export const HomeScreen = ({ settings, roundSize, onChange, onStart, onOpenSetti
       <p className="home__summary">{summary}</p>
       <button type="button" className="screen__primary-btn" data-testid="start-game" onClick={onStart}>
         <span aria-hidden="true">🌍</span> {t('home.start')}
+      </button>
+      <button type="button" className="screen__secondary-btn" data-testid="start-explore" onClick={onExplore}>
+        <span aria-hidden="true">🧭</span> {t('home.explore')}
       </button>
     </div>
   );

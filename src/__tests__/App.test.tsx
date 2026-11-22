@@ -10,8 +10,8 @@ import { App } from '../App';
 // jsdom has no WebGL: the globe becomes one button per country of its
 // continent, plus one that stands for globe.gl finishing its first frame.
 vi.mock('../components/GlobeView', () => ({
-  GlobeView: ({ world, continent, onPick, onReady }: GlobeViewProps) => (
-    <div data-testid="globe" data-continent={continent}>
+  GlobeView: ({ world, continent, skipTiny, onPick, onReady }: GlobeViewProps) => (
+    <div data-testid="globe" data-continent={continent} data-skip-tiny={String(skipTiny)}>
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
@@ -196,6 +196,56 @@ describe('App: a round', () => {
     expect(screen.getByTestId('start-game')).toBeInTheDocument();
     advance(5_000);
     expect(screen.queryByTestId('results-score')).not.toBeInTheDocument();
+  });
+});
+
+describe('App: explore', () => {
+  const name = () => screen.queryByTestId('explore-name');
+
+  it('explores the continent chosen, with the switch for the tiny countries, and goes home', async () => {
+    stored({ language: 'en', continent: 'oceania' });
+    await open();
+    click('switch-skip-tiny');
+    click('start-explore');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-continent', 'oceania');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-skip-tiny', 'true');
+    click('globe-ready');
+    click('tap-AUS');
+    expect(name()).toHaveTextContent('Australia');
+    // No clock: nothing happens however long the player looks.
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    advance(60_000);
+    expect(name()).toHaveTextContent('Australia');
+    click('explore-home');
+    expect(screen.getByTestId('start-game')).toBeInTheDocument();
+    expect(saved()).toMatchObject({ continent: 'oceania', skipTiny: true });
+  });
+
+  it('starts with no name each time', async () => {
+    stored({ language: 'en' });
+    await open();
+    click('start-explore');
+    click('globe-ready');
+    click('tap-FRA');
+    click('explore-home');
+    click('start-explore');
+    click('globe-ready');
+    expect(name()).not.toBeInTheDocument();
+  });
+
+  it('waits for the map, as a round does', async () => {
+    let resolve: (value: typeof world) => void = () => {};
+    vi.mocked(loadWorld).mockReturnValue(new Promise((r) => (resolve = r)));
+    stored({ language: 'en' });
+    await open();
+    click('start-explore');
+    expect(screen.getByText('Loading the map…')).toBeInTheDocument();
+    click('status-home');
+    expect(screen.getByTestId('start-game')).toBeInTheDocument();
+    click('start-explore');
+    await act(async () => resolve(world));
+    expect(screen.getByTestId('explore-home')).toBeInTheDocument();
+    expect(screen.getByTestId('globe')).toBeInTheDocument();
   });
 });
 

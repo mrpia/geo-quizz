@@ -1,0 +1,62 @@
+/* The header and the globe in all the space left (plan, Phase 6). The
+   header's pieces have the game's sizes (GameScreen.css), so the two screens
+   look alike. */
+.explore {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.explore__bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.6rem 1rem;
+}
+
+.explore__home {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 2px solid var(--color-chip-border);
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.explore__spacer {
+  width: 2.75rem;
+}
+
+.explore__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.explore__prompt {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 0.95rem;
+}
+
+/* The name is what this screen is for: it wraps rather than being cut. */
+.explore__name {
+  max-width: 100%;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.explore__globe {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
