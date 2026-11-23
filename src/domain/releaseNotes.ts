@@ -18,6 +18,24 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.7.0',
+    date: '2026-11-23',
+    changes: {
+      fr: [
+        "Nouveau : l'interrupteur « Mers », sous « Océans et mers ». Allumé, le jeu te demande aussi 24 mers, comme la mer Méditerranée, la mer du Nord ou le golfe du Mexique. Chaque mer est un disque bleu, comme les océans.",
+        "Sur l'accueil, les continents sont rangés sous « Sur terre » et les océans sous « Sur l'eau ».",
+      ],
+      de: [
+        'Neu: der Schalter « Meere » unter « Ozeane und Meere ». Eingeschaltet fragt dich das Spiel auch nach 24 Meeren, zum Beispiel dem Mittelmeer, der Nordsee oder dem Golf von Mexiko. Jedes Meer ist eine blaue Scheibe, wie die Ozeane.',
+        'Auf der Startseite stehen die Kontinente jetzt unter « Land » und die Ozeane unter « Wasser ».',
+      ],
+      en: [
+        'New: the "Seas" switch, under "Oceans & seas". Switched on, the game also asks you 24 seas, like the Mediterranean, the North Sea or the Gulf of Mexico. Each sea is a blue disc, like the oceans.',
+        'On the home screen, the continents are now under "Land" and the oceans under "Water".',
+      ],
+    },
+  },
+  {
     version: '0.6.0',
     date: '2026-11-23',
     changes: {
