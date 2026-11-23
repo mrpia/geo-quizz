@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Oceans**, a new tile next to the continents on Home. The whole globe
+  turns up with the five oceans drawn as faint discs in their middle, sized
+  by each ocean's area: two for the Atlantic and the Pacific, three around
+  Antarctica for the Southern Ocean. The game names an ocean; you tap one of
+  its discs. Land is grey and a tap on it does nothing. Explore works there
+  too. The "Tiny countries" switch is hidden while Oceans is chosen.
+- Home asks "Where do you want to play?" instead of "Pick a continent".
+
 ## [0.5.0] - 2026-11-22
 
 ### Changed

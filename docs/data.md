@@ -99,6 +99,40 @@ inaccessibility of the largest polygon instead
   French Southern Lands and Pitcairn) are listed in `BEYOND_HORIZON` in
   `src/domain/view.ts`, and a test keeps that list in step with the views.
 
+## Ocean zones
+
+The oceans (docs/plan.md, Phase 7) are not in `world.json`. Each is one or
+more discs near its middle, built in code by `src/domain/oceans.ts`; no
+border is drawn in the water. Natural Earth's marine polygons were measured
+and set aside on 2026-11-23: smaller seas are cut out of larger ones, and
+its Southern Ocean polygon is broken under d3-geo (the plan has the
+numbers).
+
+A disc covers 20% (`ZONE_SHARE`) of the area of the ocean it stands for, or
+of its half, from Eakins, B.W. and G.F. Sharman, *Volumes of the World's
+Oceans from ETOPO1*, NOAA National Geophysical Data Center, 2010
+([PDF](https://www.ncei.noaa.gov/sites/default/files/2023-01/World%20Ocean%20Volumes.pdf)).
+NOAA bounds the oceans by IHO Special Publication 23 (1953) and counts the
+Southern Ocean as all water south of 60°S. The app uses five of its areas
+and nothing else from it.
+
+| Ocean | Discs | NOAA area (km²) |
+|---|---|---|
+| Pacific | North, South | 77,010,000 + 84,750,000 |
+| Atlantic | North, South | 41,490,000 + 40,270,000 (without the Mediterranean and the Baltic) |
+| Indian | one | 70,560,000 |
+| Southern | three, around Antarctica | 21,960,000 |
+| Arctic | one, on the North Pole | 15,558,000 |
+
+The centres were placed by hand. `src/__tests__/oceans.test.ts` holds them
+to the land of the committed `world.json`: every centre in water, no two
+discs closer than 5°, and land on less than a tenth of each disc. The
+discs' rings are wound like the countries', so d3-geo finds their inside;
+the same file checks that at the Pole and across the antimeridian.
+
+The names are in the dictionaries (`ocean.*` in `src/i18n/`), taken from
+Natural Earth's marine layer with the first letter capitalised.
+
 ## Output format
 
 `src/data/world.json` is a TopoJSON topology with one object, `countries`.
