@@ -41,7 +41,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
 - [x] **Phase 6 — Explore mode** (0.4.0, 0.4.1)
-- [x] **Phase 7 — Oceans**
+- [x] **Phase 7 — Oceans** (0.6.0)
 
 ### Phase 0 — Foundation (done)
 
@@ -638,7 +638,7 @@ open:
   (measured 2026-11-23); with `--workers=2` all pass.
 - Bundle: the first chunk is 273 KB (86 KB gzip); Phase 6 measured 268 KB
   (85 KB). d3-geo stays in its own chunk.
-- Not released in this phase: the owner decides on 0.6.0.
+- **0.6.0** ships with this phase (owner's decision, 2026-11-23).
 
 The owner's idea of 2026-11-23: learn the oceans, and later the seas,
 without drawing borders in the water. Each ocean is one or more faint discs
