@@ -40,12 +40,20 @@ software, so the suite is slow on purpose and stays small.
 The app is a static bundle on **Firebase Hosting**: site `geo-quizz-mrpia`
 in project `modern-ally-102412` (the same project as math-quizz, which uses
 the project's default site), served at https://geo-quizz.mrpia.ch with a
-Google-managed certificate. Deploying needs `firebase-tools` installed and
-logged in:
+Google-managed certificate. The Firebase CLI is a dev dependency
+(`firebase-tools`), so `pnpm install` brings it and `pnpm ship` uses that
+copy, whatever Node version or global install the shell has. It needs a
+login once per machine (`pnpm exec firebase login`, in a normal terminal):
 
 ```sh
 pnpm ship       # = pnpm build && firebase deploy --only hosting
 ```
+
+pnpm skips two of its install scripts on purpose (`ignoredBuiltDependencies`
+in `package.json`): protobufjs's only prints a version warning, and re2's
+builds a native regex module that only `firebase serve` and the emulators
+use, through superstatic, which falls back without it. Deploying needs
+neither.
 
 `firebase.json` caches the content-hashed files under `/assets/` (the map
 data included) for a year and makes the browser revalidate `/` and
