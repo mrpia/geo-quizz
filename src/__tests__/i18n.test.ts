@@ -84,7 +84,7 @@ describe('continentName', () => {
       'Europe',
       'Afrique',
       'Asie',
-      'Amérique du Nord',
+      'Amérique du Nord, centrale et Caraïbes',
       'Amérique du Sud',
       'Océanie',
     ]);
@@ -92,7 +92,7 @@ describe('continentName', () => {
       'Europa',
       'Afrika',
       'Asien',
-      'Nordamerika',
+      'Nord- und Mittelamerika',
       'Südamerika',
       'Ozeanien',
     ]);
@@ -100,7 +100,7 @@ describe('continentName', () => {
       'Europe',
       'Africa',
       'Asia',
-      'North America',
+      'North & Central America, Caribbean',
       'South America',
       'Oceania',
     ]);

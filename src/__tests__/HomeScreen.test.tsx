@@ -30,7 +30,7 @@ describe('HomeScreen', () => {
     setup({ settings: { ...settings, language: 'de' } }, 'de');
     const group = screen.getByRole('radiogroup', { name: 'Wo möchtest du spielen?' });
     const names = within(group).getAllByRole('radio').map((b) => b.textContent);
-    expect(names).toEqual(['Europa', 'Afrika', 'Asien', 'Nordamerika', 'Südamerika', 'Ozeanien', 'Ozeane']);
+    expect(names).toEqual(['Europa', 'Afrika', 'Asien', 'Nord- und Mittelamerika', 'Südamerika', 'Ozeanien', 'Ozeane']);
     expect(within(group).getByRole('radio', { name: 'Afrika' })).toHaveAttribute('aria-checked', 'true');
     expect(within(group).getByRole('radio', { name: 'Europa' })).toHaveAttribute('aria-checked', 'false');
   });
@@ -159,6 +159,11 @@ describe('HomeScreen', () => {
     expect(about).toHaveTextContent('ℹ️');
     fireEvent.click(about);
     expect(onOpenAbout).toHaveBeenCalledOnce();
+  });
+
+  it('names the ℹ️ button "Über die App" in German, not a bare "über"', () => {
+    setup({ settings: { ...settings, language: 'de' } }, 'de');
+    expect(screen.getByRole('button', { name: 'Über die App' })).toHaveTextContent('ℹ️');
   });
 
   it('switches the language at once', () => {

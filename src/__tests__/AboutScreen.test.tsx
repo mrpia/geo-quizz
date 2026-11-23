@@ -30,6 +30,11 @@ describe('AboutScreen', () => {
     expect(screen.getByTestId('about-version')).toHaveTextContent('Geo Quizz version 9.8.7');
   });
 
+  it('is titled "Über die App" in German, not a bare "Über"', () => {
+    setup('de');
+    expect(screen.getByRole('heading', { name: 'Über die App' })).toBeInTheDocument();
+  });
+
   it('credits the author, with the site as the link', () => {
     setup('fr');
     expect(screen.getByText(/Conçu avec 💖 à Zürich, Suisse par/)).toBeInTheDocument();

@@ -20,8 +20,8 @@ const setup = (lang = settings.language) => {
   return { onSave, onBack };
 };
 
-const seconds = () => screen.getByRole('spinbutton', { name: 'Seconds per country' });
-const countries = () => screen.getByRole('spinbutton', { name: 'Countries per round' });
+const seconds = () => screen.getByRole('spinbutton', { name: 'Seconds per question' });
+const countries = () => screen.getByRole('spinbutton', { name: 'Questions per round' });
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
 describe('SettingsScreen', () => {
@@ -74,7 +74,7 @@ describe('SettingsScreen', () => {
 
   it('goes back home without saving', () => {
     const { onSave, onBack } = setup('fr');
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Secondes par pays' }), { target: { value: '30' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Secondes par question' }), { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: "retour à l'accueil" }));
     expect(onBack).toHaveBeenCalledOnce();
     expect(onSave).not.toHaveBeenCalled();
