@@ -39,6 +39,30 @@ choice next to the continents.
   neutral view or from wherever the camera is.
 - Tap rings appear all over the world at that zoom level.
 
+### Seas
+
+A switch next to the Oceans tile (docs/plan.md, Phase 7) that adds the seas
+to the round. Agreed with the owner on 2026-11-23: it makes the game harder,
+like the other switches, and the seas are zones like the oceans' discs, with
+no borders drawn. Still open:
+
+- Which seas. Natural Earth's 1:50m marine layer has 53 seas, 24 gulfs, 13
+  bays, 10 straits and 5 channels. The Persian Gulf and the Bay of Bengal
+  are as well known as most seas; the straits are slivers that would need
+  tap rings. The Caspian Sea is a lake that children learn as a sea.
+- Placing 50 zones by hand is tedious. polylabel (already in the build) on
+  each Natural Earth sea polygon gives its middle and the largest circle
+  that fits inside it. Those polygons nest (the Mediterranean's lacks the
+  Adriatic, Ionian, Tyrrhenian, Aegean and Balearic seas), so a sea would
+  first be merged with the pieces it contains.
+- Sizes: by area, as for the oceans, would make the North Sea a dot next to
+  the Pacific. A floor, or sizes by class as a map letters them (ocean, sea,
+  gulf), keeps small seas tappable.
+- Names: the layer has FR and DE names, with mistakes to override. The
+  French name of the Seto Inland Sea is "Mers intérieures de la côte
+  occidentale de l'Écosse", and the German names of Baffin Bay, Hudson Bay
+  and the Bay of Fundy are in English (checked 2026-11-23).
+
 ### Easy mode
 
 Fewer, easier places. Two switches on Home cover the first part since
