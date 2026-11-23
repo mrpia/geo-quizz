@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import raw from '../data/world.json?raw';
-import { parseWorld, type Continent, type WorldTopology } from '../domain/world';
+import { parseWorld, type Area, type WorldTopology } from '../domain/world';
 import type { GlobeViewProps } from '../components/GlobeView';
 import type { Language } from '../i18n';
 import { ExploreScreen } from '../screens/ExploreScreen';
@@ -20,7 +20,7 @@ vi.mock('../components/GlobeView', () => ({
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {world.countries
+      {[...world.countries, ...world.oceans]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -33,7 +33,7 @@ vi.mock('../components/GlobeView', () => ({
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
 
-type Options = { continent?: Continent; skipTiny?: boolean; ready?: boolean; lang?: Language };
+type Options = { continent?: Area; skipTiny?: boolean; ready?: boolean; lang?: Language };
 
 const setup = ({ continent = 'europe', skipTiny = false, ready = true, lang = 'en' }: Options = {}) => {
   const onHome = vi.fn();
@@ -124,5 +124,17 @@ describe('ExploreScreen', () => {
     expect(home).toHaveTextContent('🏠');
     fireEvent.click(home);
     expect(onHome).toHaveBeenCalledOnce();
+  });
+});
+
+// The oceans (docs/plan.md, Phase 7).
+describe('ExploreScreen: the oceans', () => {
+  it('asks for an ocean, and names the one tapped in the language of the app', () => {
+    setup({ continent: 'oceans', lang: 'de' });
+    expect(screen.getByText('Tippe auf einen Ozean, um seinen Namen zu sehen')).toBeInTheDocument();
+    expect(globe()).toHaveAttribute('data-continent', 'oceans');
+    tap('southern');
+    expect(name()).toHaveTextContent('Südlicher Ozean');
+    expect(globe()).toHaveAttribute('data-selected', 'southern');
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { HomeScreen } from '../screens/HomeScreen';
 import type { Settings } from '../domain/settings';
 import { renderWithLanguage } from './renderWithLanguage';
@@ -26,11 +26,11 @@ const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = set
 };
 
 describe('HomeScreen', () => {
-  it('offers the six continents as large buttons, the saved one chosen', () => {
+  it('offers the six continents and the oceans as large buttons, the saved one chosen', () => {
     setup({ settings: { ...settings, language: 'de' } }, 'de');
-    const group = screen.getByRole('radiogroup', { name: 'Wähle einen Kontinent' });
+    const group = screen.getByRole('radiogroup', { name: 'Wo möchtest du spielen?' });
     const names = within(group).getAllByRole('radio').map((b) => b.textContent);
-    expect(names).toEqual(['Europa', 'Afrika', 'Asien', 'Nordamerika', 'Südamerika', 'Ozeanien']);
+    expect(names).toEqual(['Europa', 'Afrika', 'Asien', 'Nordamerika', 'Südamerika', 'Ozeanien', 'Ozeane']);
     expect(within(group).getByRole('radio', { name: 'Afrika' })).toHaveAttribute('aria-checked', 'true');
     expect(within(group).getByRole('radio', { name: 'Europa' })).toHaveAttribute('aria-checked', 'false');
   });
@@ -39,6 +39,17 @@ describe('HomeScreen', () => {
     const { onChange } = setup();
     fireEvent.click(screen.getByTestId('continent-oceania'));
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ ...settings, continent: 'oceania' });
+  });
+
+  it('saves the oceans as the continent, the field that holds the choice', () => {
+    const { onChange } = setup();
+    fireEvent.click(screen.getByTestId('continent-oceans'));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ ...settings, continent: 'oceans' });
+  });
+
+  it('asks where to play in every language', () => {
+    setup({}, 'fr');
+    expect(screen.getByRole('radiogroup', { name: 'Où veux-tu jouer ?' })).toBeInTheDocument();
   });
 
   it('sums up the round', () => {
@@ -50,6 +61,33 @@ describe('HomeScreen', () => {
     // 50 countries asked of South America, which has 14: App passes 14.
     setup({ settings: { ...settings, countriesPerRound: 50, secondsPerQuestion: 7 }, roundSize: 14 });
     expect(screen.getByText('14 countries · 7 s each')).toBeInTheDocument();
+  });
+
+  it('counts oceans, not countries, in an oceans round', () => {
+    const oceans = { ...settings, continent: 'oceans' as const };
+    setup({ settings: oceans, roundSize: 5 });
+    expect(screen.getByText('5 oceans · 10 s each')).toBeInTheDocument();
+  });
+
+  it('says it in every language, with or without a time limit, for one ocean or more', () => {
+    const oceans = { ...settings, continent: 'oceans' as const };
+    setup({ settings: oceans, roundSize: 5 }, 'de');
+    expect(screen.getByText('5 Ozeane · 10 s pro Ozean')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: { ...oceans, timeLimitOn: false }, roundSize: 5 }, 'fr');
+    expect(screen.getByText('5 océans · sans limite de temps')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: oceans, roundSize: 1 }, 'fr');
+    expect(screen.getByText('1 océan · 10 s')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: { ...oceans, timeLimitOn: false }, roundSize: 1 }, 'en');
+    expect(screen.getByText('1 ocean · no time limit')).toBeInTheDocument();
+  });
+
+  it('hides the tiny-countries switch while the oceans are chosen, and keeps the time limit', () => {
+    setup({ settings: { ...settings, continent: 'oceans' } });
+    expect(screen.queryByRole('switch', { name: 'Tiny countries' })).not.toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Time limit' })).toBeInTheDocument();
   });
 
   it('says "1 country" for a round of one', () => {

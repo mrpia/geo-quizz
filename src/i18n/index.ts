@@ -1,7 +1,7 @@
 import { fr } from './fr';
 import { de } from './de';
 import { en } from './en';
-import type { Continent, Country } from '../domain/world';
+import type { Area, Country } from '../domain/world';
 import type { Language, TranslationKey } from './types';
 
 export type { Language, TranslationKey, Messages } from './types';
@@ -29,7 +29,8 @@ export const translate = (
   });
 };
 
-export const continentName = (continent: Continent, lang: Language): string =>
+/** A continent's name, or "Oceans" (plan, Phase 7): the tiles on Home. */
+export const continentName = (continent: Area, lang: Language): string =>
   translate(lang, `continent.${continent}`);
 
 /** Country names live in the data file, one per language, not in the dictionaries. */

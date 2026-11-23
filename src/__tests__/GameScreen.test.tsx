@@ -1,13 +1,14 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import raw from '../data/world.json?raw';
-import { countriesOf, parseWorld, quizPool, type Continent, type WorldTopology } from '../domain/world';
+import { countriesOf, parseWorld, quizPool, type Area, type WorldTopology } from '../domain/world';
 import type { GlobeViewProps } from '../components/GlobeView';
 import { RIGHT_COLOR, WRONG_COLOR } from '../components/globeLook';
 import { GameScreen } from '../screens/GameScreen';
 import { renderWithLanguage } from './renderWithLanguage';
 
 // jsdom has no WebGL: the globe becomes one button per country of its
-// continent, plus one that stands for globe.gl finishing its first frame.
+// continent (or per ocean), plus one that stands for globe.gl finishing its
+// first frame.
 vi.mock('../components/GlobeView', () => ({
   GlobeView: ({ world, continent, skipTiny, onPick, onReady, highlight }: GlobeViewProps) => (
     <div
@@ -22,7 +23,7 @@ vi.mock('../components/GlobeView', () => ({
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {world.countries
+      {[...world.countries, ...world.oceans]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -51,7 +52,7 @@ const advance = (ms: number) =>
   });
 
 type Options = {
-  continent?: Continent;
+  continent?: Area;
   /** `null`: the time limit switched off. */
   seconds?: number | null;
   countries?: number;
@@ -339,5 +340,31 @@ describe('GameScreen: without the tiny countries', () => {
   it('tells the globe when every place is asked', () => {
     setup();
     expect(globe()).toHaveAttribute('data-skip-tiny', 'false');
+  });
+});
+
+// The oceans (docs/plan.md, Phase 7).
+describe('GameScreen: the oceans', () => {
+  it('asks an ocean by name, and each of the five once', () => {
+    setup({ continent: 'oceans', countries: 10 });
+    expect(globe()).toHaveAttribute('data-continent', 'oceans');
+    expect(screen.getByText('Find this ocean:')).toBeInTheDocument();
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 5');
+    const asked = new Set<string>();
+    for (let i = 0; i < 5; i++) {
+      asked.add(target());
+      expect(screen.getByTestId('game-target')).toHaveTextContent(nameOf(target()));
+      tap(target());
+      advance(1_000);
+    }
+    expect([...asked].sort()).toEqual(['arctic', 'atlantic', 'indian', 'pacific', 'southern']);
+  });
+
+  it('names the ocean tapped on a wrong answer', () => {
+    setup({ continent: 'oceans' });
+    const wrong = world.oceans.find((o) => o.id !== target())!;
+    tap(wrong.id);
+    expect(verdict()).toHaveTextContent(`❌ You tapped ${wrong.properties.names.en}`);
+    expect(globe()).toHaveAttribute('data-picked', wrong.id);
   });
 });

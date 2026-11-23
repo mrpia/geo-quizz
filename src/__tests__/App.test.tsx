@@ -8,14 +8,15 @@ import { SETTINGS_KEY } from '../storage/settingsStore';
 import { App } from '../App';
 
 // jsdom has no WebGL: the globe becomes one button per country of its
-// continent, plus one that stands for globe.gl finishing its first frame.
+// continent (or per ocean), plus one that stands for globe.gl finishing its
+// first frame.
 vi.mock('../components/GlobeView', () => ({
   GlobeView: ({ world, continent, skipTiny, onPick, onReady }: GlobeViewProps) => (
     <div data-testid="globe" data-continent={continent} data-skip-tiny={String(skipTiny)}>
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {world.countries
+      {[...world.countries, ...world.oceans]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -175,6 +176,33 @@ describe('App: a round', () => {
     expect(screen.getByTestId('globe')).toHaveAttribute('data-continent', 'africa');
     expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 2');
     expect(screen.queryByTestId('game-verdict')).not.toBeInTheDocument();
+  });
+
+  it('counts five oceans before the map has loaded: unlike a continent, it needs no map', async () => {
+    vi.mocked(loadWorld).mockReturnValue(new Promise(() => {}));
+    stored({ language: 'en', countriesPerRound: 10, continent: 'oceans' });
+    await open();
+    expect(screen.getByText('5 oceans · 10 s each')).toBeInTheDocument();
+  });
+
+  it('plays the oceans from Home to the results, and remembers the choice', async () => {
+    // docs/plan.md, Phase 7: five oceans, so a round of 10 asks five.
+    stored({ language: 'en', countriesPerRound: 10, continent: 'africa' });
+    await open();
+    click('continent-oceans');
+    expect(saved().continent).toBe('oceans');
+    expect(screen.getByText('5 oceans · 10 s each')).toBeInTheDocument();
+    expect(screen.queryByTestId('switch-tiny')).not.toBeInTheDocument();
+    click('start-game');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-continent', 'oceans');
+    click('globe-ready');
+    for (let i = 0; i < 5; i++) {
+      click(`tap-${target()}`);
+      advance(1_000);
+    }
+    expect(screen.getByTestId('results-score')).toHaveTextContent('5 / 5');
+    const names = screen.getAllByTestId('results-row').map((r) => r.querySelector('.results__target')?.textContent);
+    expect(names.sort()).toEqual(['Arctic Ocean', 'Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Southern Ocean']);
   });
 
   it('goes home from the results', async () => {

@@ -1,5 +1,5 @@
 import type { Point } from './gesture';
-import type { Continent } from './world';
+import type { Area } from './world';
 
 /**
  * A camera position in globe.gl's `pointOfView` units: the point under the
@@ -20,13 +20,17 @@ export type LngLat = readonly [number, number];
  * (about 1180 × 700 px below the header) and no anchor sits within 3° of the
  * horizon either way. Check them on the tablet in Phase 2.
  */
-export const CONTINENT_VIEWS: Record<Continent, View> = {
+export const CONTINENT_VIEWS: Record<Area, View> = {
   europe: { lat: 52, lng: 15, altitude: 0.9 },
   africa: { lat: 2, lng: 15, altitude: 1.4 },
   asia: { lat: 25, lng: 90, altitude: 1.4 },
   'north-america': { lat: 45, lng: -95, altitude: 1.7 },
   'south-america': { lat: -20, lng: -60, altitude: 1.4 },
   oceania: { lat: -18, lng: 155, altitude: 1.5 },
+  // The oceans (plan, Phase 7): the whole globe, Africa in the middle, the
+  // Atlantic to its left, the Indian Ocean to its right, the Southern Ocean
+  // below. No view shows all five oceans.
+  oceans: { lat: 0, lng: 20, altitude: 2.2 },
 };
 
 /**
@@ -35,7 +39,7 @@ export const CONTINENT_VIEWS: Record<Continent, View> = {
  * these becomes visible or another country becomes hidden, so the list
  * always matches the views above.
  */
-export const BEYOND_HORIZON: Record<Continent, readonly string[]> = {
+export const BEYOND_HORIZON: Record<Area, readonly string[]> = {
   europe: [],
   // French Southern and Antarctic Lands, Heard Island and McDonald Islands.
   africa: ['ATF', 'HMD'],
@@ -44,6 +48,8 @@ export const BEYOND_HORIZON: Record<Continent, readonly string[]> = {
   'south-america': [],
   // Pitcairn Islands.
   oceania: ['PCN'],
+  // The first disc of each: the North Pacific's and the Arctic's, on the Pole.
+  oceans: ['pacific', 'arctic'],
 };
 
 const RAD = Math.PI / 180;
@@ -120,7 +126,7 @@ export const GLOBE_VFOV_DEG = 50;
 export const TAP_RING_MIN_PX = 24;
 
 /** The radius `tools/build-data.mjs` computes `areaKm2` with. */
-const EARTH_RADIUS_KM = 6371.0088;
+export const EARTH_RADIUS_KM = 6371.0088;
 
 /**
  * Estimated on-screen diameter of a country, in CSS pixels, as if it were a

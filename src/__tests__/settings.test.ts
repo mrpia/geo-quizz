@@ -99,10 +99,11 @@ describe('sanitizeSettings', () => {
   it('remembers only a continent the game asks', () => {
     // The Home screen saves the continent last played (the owner's call,
     // 2026-11-21). Antarctica is drawn but never asked.
-    for (const continent of ['africa', 'south-america']) {
+    // The oceans (plan, Phase 7) are stored in the same field.
+    for (const continent of ['africa', 'south-america', 'oceans']) {
       expect(sanitizeSettings({ continent }, browser).continent).toBe(continent);
     }
-    for (const continent of ['antarctica', 'Europe', 'atlantis', 3, null]) {
+    for (const continent of ['antarctica', 'Europe', 'atlantis', 'pacific', 'ocean', 3, null]) {
       expect(sanitizeSettings({ continent }, browser).continent).toBe('europe');
     }
   });

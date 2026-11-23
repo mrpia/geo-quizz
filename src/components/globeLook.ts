@@ -45,7 +45,30 @@ export const HOVER_COLOR = '#f59e0b';
  */
 export const ALTITUDE = {
   base: 0.005,
+  /**
+   * The oceans' discs (plan, Phase 7): under the land, so that coasts and
+   * islands cover a disc's edge, and above the sea. Not a raise: lower than
+   * every country.
+   */
+  zone: 0.0025,
 } as const;
+
+/**
+ * The oceans' discs: a light blue the dark sea shows through, so they read
+ * as a zone rather than an island. One colour for all of them, as no two
+ * touch. globe.gl makes a cap with an alpha below 1 transparent.
+ */
+export const ZONE_COLOR = 'rgba(125, 211, 252, 0.4)';
+/** A disc's edge, lighter than its fill, so its shape shows against the sea. */
+export const ZONE_EDGE_COLOR = 'rgba(224, 242, 254, 0.9)';
+
+const isZone = (place: Country): boolean => place.properties.continent === 'oceans';
+
+/** A shape's outline: the borders between countries, or a disc's edge. */
+export const strokeColorOf = (place: Country): string => (isZone(place) ? ZONE_EDGE_COLOR : BORDER_COLOR);
+
+/** A shape's altitude: the land's, or the lower one of a disc. */
+export const altitudeOf = (place: Country): number => (isZone(place) ? ALTITUDE.zone : ALTITUDE.base);
 
 /**
  * The answer, and a wrong pick. The same values as `--color-success` and
@@ -104,6 +127,7 @@ export const capColorOf = (
   if (country.id === selectedId) return SELECTED_COLOR;
   if (!inPlay) return OTHER_LAND_COLOR;
   if (country.id === hoverId) return HOVER_COLOR;
+  if (isZone(country)) return ZONE_COLOR;
   const color = MAP_PALETTE[country.properties.color - 1];
   if (color === undefined) {
     throw new Error(`globe: ${country.id} has MAPCOLOR7 ${country.properties.color}, not 1–7`);

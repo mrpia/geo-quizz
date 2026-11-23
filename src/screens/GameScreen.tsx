@@ -4,14 +4,15 @@ import { GlobeView } from '../components/GlobeView';
 import { NO_HIGHLIGHT, RIGHT_COLOR, WRONG_COLOR, type GlobeHighlight } from '../components/globeLook';
 import { feedbackMs, gameReducer, score, startGame, type Answer } from '../domain/game';
 import { drawRound } from '../domain/round';
-import { quizPool, type Continent, type World } from '../domain/world';
+import { quizPool, type Area, type World } from '../domain/world';
 import { countryName } from '../i18n';
 import { useI18n } from '../i18n/I18nContext';
 import './GameScreen.css';
 
 type Props = {
   world: World;
-  continent: Continent;
+  /** A continent, or the oceans (plan, Phase 7). */
+  continent: Area;
   /** `null`: the time limit is off, so there is no countdown and no timeout. */
   secondsPerQuestion: number | null;
   countriesPerRound: number;
@@ -158,7 +159,7 @@ export const GameScreen = ({
                   : t('game.wrong', { country: nameOf(shown.pickedId ?? '') })}
             </p>
           ) : (
-            <p className="game__prompt">{t('game.prompt')}</p>
+            <p className="game__prompt">{t(continent === 'oceans' ? 'game.promptOcean' : 'game.prompt')}</p>
           )}
           {askedAt !== null && (
             <strong className="game__target" data-testid="game-target" data-id={targetId}>

@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { LanguageToggle } from '../components/LanguageToggle';
 import type { Settings } from '../domain/settings';
-import { CONTINENTS } from '../domain/world';
+import { AREAS } from '../domain/world';
 import { continentName } from '../i18n';
 import { useI18n } from '../i18n/I18nContext';
 import './screens.css';
@@ -12,7 +12,7 @@ type Props = {
   /**
    * How many countries the round will have: the setting, or fewer when the
    * round has fewer places (South America has 14; Oceania without the tiny
-   * countries has 9).
+   * countries has 9; the oceans are five).
    */
   roundSize: number;
   /** A changed continent, switch or language, to save at once. */
@@ -64,13 +64,23 @@ export const HomeScreen = ({
   const titleId = useId();
   const seconds = settings.secondsPerQuestion;
 
+  const oceans = settings.continent === 'oceans';
+  const one = roundSize === 1;
   const summary = settings.timeLimitOn
-    ? roundSize === 1
-      ? t('home.summaryOne', { seconds })
-      : t('home.summary', { count: roundSize, seconds })
-    : roundSize === 1
-      ? t('home.summaryOneUntimed')
-      : t('home.summaryUntimed', { count: roundSize });
+    ? oceans
+      ? one
+        ? t('home.summaryOneOcean', { seconds })
+        : t('home.summaryOceans', { count: roundSize, seconds })
+      : one
+        ? t('home.summaryOne', { seconds })
+        : t('home.summary', { count: roundSize, seconds })
+    : oceans
+      ? one
+        ? t('home.summaryOneOceanUntimed')
+        : t('home.summaryOceansUntimed', { count: roundSize })
+      : one
+        ? t('home.summaryOneUntimed')
+        : t('home.summaryUntimed', { count: roundSize });
 
   return (
     <div className="screen home">
@@ -103,7 +113,7 @@ export const HomeScreen = ({
           {t('home.continentTitle')}
         </h2>
         <div className="home__continents" role="radiogroup" aria-labelledby={titleId}>
-          {CONTINENTS.map((continent) => (
+          {AREAS.map((continent) => (
             <button
               key={continent}
               type="button"
@@ -125,13 +135,17 @@ export const HomeScreen = ({
           testId="switch-time-limit"
           onToggle={() => onChange({ ...settings, timeLimitOn: !settings.timeLimitOn })}
         />
-        {/* On asks the tiny countries: every switch that is on makes the game harder. */}
-        <Switch
-          label={t('home.tinyCountries')}
-          on={!settings.skipTiny}
-          testId="switch-tiny"
-          onToggle={() => onChange({ ...settings, skipTiny: !settings.skipTiny })}
-        />
+        {/* On asks the tiny countries: every switch that is on makes the game
+            harder. The oceans have no tiny places, so it is hidden for them
+            (plan, Phase 7); the setting keeps its value for the continents. */}
+        {!oceans && (
+          <Switch
+            label={t('home.tinyCountries')}
+            on={!settings.skipTiny}
+            testId="switch-tiny"
+            onToggle={() => onChange({ ...settings, skipTiny: !settings.skipTiny })}
+          />
+        )}
       </section>
       <p className="home__summary">{summary}</p>
       <button type="button" className="screen__primary-btn" data-testid="start-game" onClick={onStart}>

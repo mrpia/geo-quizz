@@ -1,5 +1,5 @@
 import raw from '../data/world.json?raw';
-import { CONTINENTS, countriesOf, parseWorld, type WorldTopology } from '../domain/world';
+import { AREAS, parseWorld, quizPool, type WorldTopology } from '../domain/world';
 import {
   BEYOND_HORIZON,
   CONTINENT_VIEWS,
@@ -45,10 +45,11 @@ describe('horizon geometry', () => {
   });
 });
 
+// The oceans (plan, Phase 7) have a view of their own, like a continent.
 describe('continent views', () => {
-  it('has one view per continent, in pointOfView units', () => {
-    expect(Object.keys(CONTINENT_VIEWS).sort()).toEqual([...CONTINENTS].sort());
-    for (const continent of CONTINENTS) {
+  it('has one view per continent and one for the oceans, in pointOfView units', () => {
+    expect(Object.keys(CONTINENT_VIEWS).sort()).toEqual([...AREAS].sort());
+    for (const continent of AREAS) {
       const { lat, lng, altitude } = CONTINENT_VIEWS[continent];
       expect(Math.abs(lat), continent).toBeLessThanOrEqual(90);
       expect(Math.abs(lng), continent).toBeLessThanOrEqual(180);
@@ -57,7 +58,7 @@ describe('continent views', () => {
   });
 
   it('lists only countries of the continent as beyond the horizon', () => {
-    for (const continent of CONTINENTS) {
+    for (const continent of AREAS) {
       const listed = BEYOND_HORIZON[continent];
       expect(new Set(listed).size, continent).toBe(listed.length);
       for (const id of listed) {
@@ -69,17 +70,23 @@ describe('continent views', () => {
   // Fails both ways: a country hidden at the start that nobody listed (a view
   // that cuts off part of the continent), and a listed island that is in fact
   // visible (a list that went stale when a view moved).
-  it.each(CONTINENTS)(
+  it.each(AREAS)(
     'shows every %s country at the start, except the listed remote islands',
     (continent) => {
       const view = CONTINENT_VIEWS[continent];
-      const hidden = countriesOf(world, continent)
+      const hidden = quizPool(world, continent, { skipTiny: false })
         .filter((c) => !isWithinHorizon(view, c.properties.anchor))
         .map((c) => c.id)
         .sort();
       expect(hidden).toEqual([...BEYOND_HORIZON[continent]].sort());
     },
   );
+
+  it('shows the whole globe for the oceans, Africa in the middle', () => {
+    expect(CONTINENT_VIEWS.oceans).toEqual({ lat: 0, lng: 20, altitude: 2.2 });
+    // No view shows all five: the Pacific and the Arctic are a turn away.
+    expect(BEYOND_HORIZON.oceans).toEqual(['pacific', 'arctic']);
+  });
 });
 
 describe('tap rings', () => {
