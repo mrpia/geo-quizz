@@ -5,7 +5,8 @@ Pick a continent and it turns up on a 3D globe with every border drawn and no
 names. The game names a country; you have 10 seconds to tap it. Ten countries
 make a round, and you see your score at the end. Both numbers can be changed
 in the settings. To learn a continent first, Explore shows the same globe
-with no question: tap a country and its name appears.
+with no question: tap a country and its name appears. The Oceans tile asks
+the five oceans instead, each drawn as a faint disc in its middle.
 
 French, German and English. Everything runs in the browser: no account, no
 server, nothing sent anywhere.
@@ -75,7 +76,8 @@ Country shapes and names come from [Natural Earth](https://www.naturalearthdata.
 (1:50m Admin 0 – Countries, v5.1.2), which is in the public domain. Natural
 Earth draws de facto borders. [docs/data.md](docs/data.md) explains which
 places the quiz asks for, which continent each belongs to, and every name the
-build corrects.
+build corrects. The oceans' discs are not in that file: their sizes come from
+NOAA's ocean areas, and [docs/data.md](docs/data.md) explains them too.
 
 Made with Natural Earth.
 

@@ -41,7 +41,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
 - [x] **Phase 6 — Explore mode** (0.4.0, 0.4.1)
-- [ ] **Phase 7 — Oceans**
+- [x] **Phase 7 — Oceans**
 
 ### Phase 0 — Foundation (done)
 
@@ -607,7 +607,38 @@ Done when: Explore opens from Home on the chosen continent with the switch
 honoured, a tap names the place in the app's language, nothing is timed or
 scored, 🏠 goes back, and both suites pass in CI.
 
-### Phase 7 — Oceans
+### Phase 7 — Oceans (done)
+
+As built, where it differs from the text below or fills in what it left
+open:
+
+- **The start view puts Africa in the middle** (lat 0°, lng 20°, altitude
+  2.2): the Atlantic's discs on the left, the Indian Ocean's on the right, a
+  Southern Ocean disc at the bottom edge. The Pacific's and the Arctic's are
+  a turn away (`BEYOND_HORIZON`). No view shows all five. The discs near the
+  globe's edge look narrow at that view; to be checked on the tablet.
+- **The discs' look**: `ZONE_COLOR` `rgba(125, 211, 252, 0.4)` with a
+  `ZONE_EDGE_COLOR` edge `rgba(224, 242, 254, 0.9)`, at altitude 0.0025, under
+  the land's 0.005. Checked in headless Chromium: coasts and islands cover
+  the discs, the Arctic's renders round the Pole, and a selected ocean turns
+  all of its discs green with the white outline.
+- **Home counts five oceans before the map has loaded.** A continent's count
+  still waits for the map, as before; "10 oceans" while it loaded was
+  plainly wrong.
+- **In the code**, Home's choice is `Area` (a continent or `'oceans'`), but
+  the setting and the screens' props keep the name `continent`, and an ocean
+  is a `Country` with `continent: 'oceans'`, as the game already calls every
+  place a country. A tap on land over a disc finds nothing:
+  `createLocator(places, covering)` in `src/domain/pick.ts`.
+- The test that land covers less than a tenth of each disc samples 360
+  points per disc and takes about 2 s alone, four times that in a full
+  parallel run; it has a 30 s timeout of its own.
+- e2e: on the WSL machine (16 cores, Playwright's default 8 workers), four
+  continent specs time out in a full parallel run, on `main` as well
+  (measured 2026-11-23); with `--workers=2` all pass.
+- Bundle: the first chunk is 273 KB (86 KB gzip); Phase 6 measured 268 KB
+  (85 KB). d3-geo stays in its own chunk.
+- Not released in this phase: the owner decides on 0.6.0.
 
 The owner's idea of 2026-11-23: learn the oceans, and later the seas,
 without drawing borders in the water. Each ocean is one or more faint discs
