@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-23
+
 ### Added
 
 - **Oceans**, a new tile next to the continents on Home. The whole globe
@@ -170,7 +172,8 @@ countries on the globe against the clock.
   WebGL), also in CI: the globe, taps and rings, a 3-country round played with
   a mouse and with a finger, and a round whose timer runs out.
 
-[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/mrpia/geo-quizz/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/mrpia/geo-quizz/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/mrpia/geo-quizz/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/mrpia/geo-quizz/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/mrpia/geo-quizz/compare/v0.3.0...v0.4.0

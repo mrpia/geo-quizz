@@ -18,6 +18,24 @@ export type ReleaseNote = {
 /** Newest first. */
 export const releaseNotes: readonly ReleaseNote[] = [
   {
+    version: '0.6.0',
+    date: '2026-11-23',
+    changes: {
+      fr: [
+        "Nouveau : « Océans », à côté des continents. Les cinq océans sont des disques bleus sur le globe, plus grands pour les plus grands océans. Le jeu te donne le nom d'un océan : touche un de ses disques.",
+        "« Explorer » marche aussi avec les océans : touche un disque pour voir le nom de l'océan.",
+      ],
+      de: [
+        'Neu: « Ozeane » neben den Kontinenten. Die fünf Ozeane sind blaue Scheiben auf dem Globus, grössere für die grösseren Ozeane. Das Spiel nennt dir einen Ozean: Tippe auf eine seiner Scheiben.',
+        '« Entdecken » geht auch mit den Ozeanen: Tippe auf eine Scheibe, um den Namen des Ozeans zu sehen.',
+      ],
+      en: [
+        'New: "Oceans", next to the continents. The five oceans are blue discs on the globe, bigger for the bigger oceans. The game names an ocean: tap one of its discs.',
+        '"Explore" works with the oceans too: tap a disc to see the ocean\'s name.',
+      ],
+    },
+  },
+  {
     version: '0.5.0',
     date: '2026-11-22',
     changes: {
