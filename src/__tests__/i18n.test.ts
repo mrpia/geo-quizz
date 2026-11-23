@@ -106,11 +106,12 @@ describe('continentName', () => {
     ]);
   });
 
-  it('names the oceans tile, Home\'s last (plan, Phase 7)', () => {
+  // Phase 7 named it "Oceans"; it holds the seas too since Phase 8.
+  it('names the oceans tile, Home\'s last, for the oceans and the seas (plan, Phase 8)', () => {
     expect(['fr', 'de', 'en'].map((lang) => continentName('oceans', lang as 'fr'))).toEqual([
-      'Océans',
-      'Ozeane',
-      'Oceans',
+      'Océans et mers',
+      'Ozeane und Meere',
+      'Oceans & seas',
     ]);
   });
 });

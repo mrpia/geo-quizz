@@ -58,6 +58,11 @@ export type GlobeViewProps = {
    */
   skipTiny: boolean;
   /**
+   * On the oceans, the seas too (`quizPool`, plan, Phase 8): their discs are
+   * drawn, ringed and picked like the oceans'.
+   */
+  includeSeas: boolean;
+  /**
    * What to show after a tap or a timeout. Nothing by default. The answer
    * (`correctId`) is outlined and marked ✅, a wrong pick marked ❌, and the
    * camera flies over the answer, at the altitude it has, when it is out of
@@ -126,6 +131,7 @@ export const GlobeView = ({
   world,
   continent,
   skipTiny,
+  includeSeas,
   highlight = NO_HIGHLIGHT,
   selectedId = null,
   onPick,
@@ -152,7 +158,10 @@ export const GlobeView = ({
 
   const oceansRound = continent === 'oceans';
   // The round's places: everything below (colours, rings, hover, picks) reads these.
-  const countries = useMemo(() => quizPool(world, continent, { skipTiny }), [world, continent, skipTiny]);
+  const countries = useMemo(
+    () => quizPool(world, continent, { skipTiny, includeSeas }),
+    [world, continent, skipTiny, includeSeas],
+  );
   const inPlay = useMemo(() => new Set(countries.map((c) => c.id)), [countries]);
   // In an oceans round the land is drawn over the discs, so a tap on it is
   // not a tap on the ocean underneath.
@@ -162,12 +171,14 @@ export const GlobeView = ({
   );
   // One datum per shape for the life of the world: three-globe keys its
   // meshes by datum, so new objects would rebuild all 1,620 shapes. The
-  // oceans' discs join the land in an oceans round only.
+  // discs join the land in an oceans round only: the oceans', and the seas'
+  // when they are asked.
   const landData = useMemo<PolygonDatum[]>(() => world.countries.map((country) => ({ country })), [world]);
   const oceanData = useMemo<PolygonDatum[]>(() => world.oceans.map((country) => ({ country })), [world]);
+  const seaData = useMemo<PolygonDatum[]>(() => world.seas.map((country) => ({ country })), [world]);
   const polygons = useMemo(
-    () => (oceansRound ? [...landData, ...oceanData] : landData),
-    [landData, oceanData, oceansRound],
+    () => (oceansRound ? [...landData, ...oceanData, ...(includeSeas ? seaData : [])] : landData),
+    [landData, oceanData, seaData, oceansRound, includeSeas],
   );
   const drawn = useMemo(() => polygons.map(({ country }) => country), [polygons]);
 

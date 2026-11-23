@@ -14,6 +14,8 @@ type Props = {
    * and a tap on one names nothing.
    */
   skipTiny: boolean;
+  /** On the oceans, the seas too (`quizPool`, plan, Phase 8), as in a round. */
+  includeSeas: boolean;
   /** The 🏠: back home. */
   onHome: () => void;
 };
@@ -25,7 +27,7 @@ type Props = {
  * the sea or on grey land changes nothing, so the name stays with its
  * outline. As in a round, nothing can be tapped until the map is drawn.
  */
-export const ExploreScreen = ({ world, continent, skipTiny, onHome }: Props) => {
+export const ExploreScreen = ({ world, continent, skipTiny, includeSeas, onHome }: Props) => {
   const { t, lang } = useI18n();
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -58,7 +60,13 @@ export const ExploreScreen = ({ world, continent, skipTiny, onHome }: Props) => 
               keeps its height and the globe is not resized. */}
           {ready ? (
             <p className="explore__prompt" data-testid="explore-prompt">
-              {t(continent === 'oceans' ? 'explore.promptOcean' : 'explore.prompt')}
+              {t(
+                continent !== 'oceans'
+                  ? 'explore.prompt'
+                  : includeSeas
+                    ? 'explore.promptWater'
+                    : 'explore.promptOcean',
+              )}
             </p>
           ) : (
             <p className="explore__prompt" aria-hidden="true">
@@ -83,6 +91,7 @@ export const ExploreScreen = ({ world, continent, skipTiny, onHome }: Props) => 
           world={world}
           continent={continent}
           skipTiny={skipTiny}
+          includeSeas={includeSeas}
           selectedId={selectedId}
           onPick={onPick}
           onReady={onReady}

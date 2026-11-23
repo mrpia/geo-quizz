@@ -49,7 +49,28 @@ export const BEYOND_HORIZON: Record<Area, readonly string[]> = {
   // Pitcairn Islands.
   oceania: ['PCN'],
   // The first disc of each: the North Pacific's and the Arctic's, on the Pole.
-  oceans: ['pacific', 'arctic'],
+  // With the seas (plan, Phase 8), the 15 of the Americas, East Asia,
+  // Australia and Antarctica; the ones around Europe, Arabia and India
+  // face the camera.
+  oceans: [
+    'pacific',
+    'arctic',
+    'caribbean-sea',
+    'gulf-of-mexico',
+    'hudson-bay',
+    'baffin-bay',
+    'labrador-sea',
+    'beaufort-sea',
+    'gulf-of-alaska',
+    'sea-of-okhotsk',
+    'sea-of-japan',
+    'philippine-sea',
+    'south-china-sea',
+    'coral-sea',
+    'tasman-sea',
+    'weddell-sea',
+    'ross-sea',
+  ],
 };
 
 const RAD = Math.PI / 180;

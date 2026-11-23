@@ -20,6 +20,11 @@ export type Settings = {
    * meaning, so choices saved by 0.3.0 to 0.4.1 read as they were.
    */
   skipTiny: boolean;
+  /**
+   * On: a round on the oceans asks the seas too (plan, Phase 8). Home's
+   * "Seas" switch, shown only while the oceans are chosen.
+   */
+  includeSeas: boolean;
 };
 
 export const DEFAULT_SECONDS_PER_QUESTION = 10;
@@ -29,6 +34,9 @@ export const DEFAULT_CONTINENT: Continent = 'europe';
 // "Tiny countries" off (the owner's call, 2026-11-22; docs/plan.md, Phase 5).
 export const DEFAULT_TIME_LIMIT_ON = true;
 export const DEFAULT_SKIP_TINY = true;
+// The seas are off for a new player, and for anyone updating from 0.6.0:
+// their oceans round stays as it was (plan, Phase 8).
+export const DEFAULT_INCLUDE_SEAS = false;
 
 const isArea = (value: unknown): value is Area =>
   typeof value === 'string' && (AREAS as readonly string[]).includes(value);
@@ -49,6 +57,7 @@ export const defaultSettings = (browserLanguages: readonly string[]): Settings =
   continent: DEFAULT_CONTINENT,
   timeLimitOn: DEFAULT_TIME_LIMIT_ON,
   skipTiny: DEFAULT_SKIP_TINY,
+  includeSeas: DEFAULT_INCLUDE_SEAS,
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -94,5 +103,6 @@ export const sanitizeSettings = (
     continent: isArea(raw.continent) ? raw.continent : defaults.continent,
     timeLimitOn: readSwitch(raw.timeLimitOn, defaults.timeLimitOn),
     skipTiny: readSwitch(raw.skipTiny, defaults.skipTiny),
+    includeSeas: readSwitch(raw.includeSeas, defaults.includeSeas),
   };
 };

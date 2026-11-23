@@ -9,18 +9,19 @@ import { renderWithLanguage } from './renderWithLanguage';
 // jsdom has no WebGL: the globe becomes one button per country of its
 // continent, plus one that stands for globe.gl finishing its first frame.
 vi.mock('../components/GlobeView', () => ({
-  GlobeView: ({ world, continent, skipTiny, selectedId, highlight, onPick, onReady }: GlobeViewProps) => (
+  GlobeView: ({ world, continent, skipTiny, includeSeas, selectedId, highlight, onPick, onReady }: GlobeViewProps) => (
     <div
       data-testid="globe"
       data-continent={continent}
       data-skip-tiny={String(skipTiny)}
+      data-include-seas={String(includeSeas)}
       data-selected={selectedId ?? ''}
       data-correct={highlight?.correctId ?? ''}
     >
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {[...world.countries, ...world.oceans]
+      {[...world.countries, ...world.oceans, ...(includeSeas ? world.seas : [])]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -33,12 +34,24 @@ vi.mock('../components/GlobeView', () => ({
 
 const world = parseWorld(JSON.parse(raw) as WorldTopology);
 
-type Options = { continent?: Area; skipTiny?: boolean; ready?: boolean; lang?: Language };
+type Options = { continent?: Area; skipTiny?: boolean; includeSeas?: boolean; ready?: boolean; lang?: Language };
 
-const setup = ({ continent = 'europe', skipTiny = false, ready = true, lang = 'en' }: Options = {}) => {
+const setup = ({
+  continent = 'europe',
+  skipTiny = false,
+  includeSeas = false,
+  ready = true,
+  lang = 'en',
+}: Options = {}) => {
   const onHome = vi.fn();
   renderWithLanguage(
-    <ExploreScreen world={world} continent={continent} skipTiny={skipTiny} onHome={onHome} />,
+    <ExploreScreen
+      world={world}
+      continent={continent}
+      skipTiny={skipTiny}
+      includeSeas={includeSeas}
+      onHome={onHome}
+    />,
     lang,
   );
   if (ready) fireEvent.click(screen.getByTestId('globe-ready'));
@@ -136,5 +149,23 @@ describe('ExploreScreen: the oceans', () => {
     tap('southern');
     expect(name()).toHaveTextContent('Südlicher Ozean');
     expect(globe()).toHaveAttribute('data-selected', 'southern');
+  });
+});
+
+// The seas (docs/plan.md, Phase 8): the switch applies to Explore too.
+describe('ExploreScreen: the oceans with the seas', () => {
+  it('asks for an ocean or a sea, and names the sea tapped', () => {
+    setup({ continent: 'oceans', includeSeas: true, lang: 'de' });
+    expect(screen.getByText('Tippe auf einen Ozean oder ein Meer, um seinen Namen zu sehen')).toBeInTheDocument();
+    expect(globe()).toHaveAttribute('data-include-seas', 'true');
+    tap('north-sea');
+    expect(name()).toHaveTextContent('Nordsee');
+    expect(globe()).toHaveAttribute('data-selected', 'north-sea');
+  });
+
+  it('asks for an ocean only while the seas are off', () => {
+    setup({ continent: 'oceans' });
+    expect(screen.getByText('Tap an ocean to see its name')).toBeInTheDocument();
+    expect(globe()).toHaveAttribute('data-include-seas', 'false');
   });
 });

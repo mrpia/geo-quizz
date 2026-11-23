@@ -11,6 +11,7 @@ const settings: Settings = {
   // Not the defaults, so a Save that dropped them would show.
   timeLimitOn: false,
   skipTiny: true,
+  includeSeas: true,
 };
 
 const setup = (lang = settings.language) => {

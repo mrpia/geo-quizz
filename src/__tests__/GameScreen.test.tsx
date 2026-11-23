@@ -3,6 +3,8 @@ import raw from '../data/world.json?raw';
 import { countriesOf, parseWorld, quizPool, type Area, type WorldTopology } from '../domain/world';
 import type { GlobeViewProps } from '../components/GlobeView';
 import { RIGHT_COLOR, WRONG_COLOR } from '../components/globeLook';
+import { OCEAN_IDS } from '../domain/oceans';
+import { SEA_IDS } from '../domain/seas';
 import { GameScreen } from '../screens/GameScreen';
 import { renderWithLanguage } from './renderWithLanguage';
 
@@ -10,11 +12,12 @@ import { renderWithLanguage } from './renderWithLanguage';
 // continent (or per ocean), plus one that stands for globe.gl finishing its
 // first frame.
 vi.mock('../components/GlobeView', () => ({
-  GlobeView: ({ world, continent, skipTiny, onPick, onReady, highlight }: GlobeViewProps) => (
+  GlobeView: ({ world, continent, skipTiny, includeSeas, onPick, onReady, highlight }: GlobeViewProps) => (
     <div
       data-testid="globe"
       data-continent={continent}
       data-skip-tiny={String(skipTiny)}
+      data-include-seas={String(includeSeas)}
       data-correct={highlight?.correctId ?? ''}
       data-correct-color={highlight?.correctColor ?? ''}
       data-picked={highlight?.pickedId ?? ''}
@@ -23,7 +26,7 @@ vi.mock('../components/GlobeView', () => ({
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {[...world.countries, ...world.oceans]
+      {[...world.countries, ...world.oceans, ...(includeSeas ? world.seas : [])]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -57,6 +60,7 @@ type Options = {
   seconds?: number | null;
   countries?: number;
   skipTiny?: boolean;
+  includeSeas?: boolean;
   ready?: boolean;
 };
 
@@ -65,6 +69,7 @@ const setup = ({
   seconds = 10,
   countries = 3,
   skipTiny = false,
+  includeSeas = false,
   ready = true,
 }: Options = {}) => {
   const onFinish = vi.fn();
@@ -76,6 +81,7 @@ const setup = ({
       secondsPerQuestion={seconds}
       countriesPerRound={countries}
       skipTiny={skipTiny}
+      includeSeas={includeSeas}
       onFinish={onFinish}
       onQuit={onQuit}
     />,
@@ -323,7 +329,7 @@ describe('GameScreen: without the tiny countries', () => {
       advance(1_000);
     }
     expect([...seen].sort()).toEqual(
-      quizPool(world, 'oceania', { skipTiny: true })
+      quizPool(world, 'oceania', { skipTiny: true, includeSeas: false })
         .map((c) => c.id)
         .sort(),
     );
@@ -360,11 +366,58 @@ describe('GameScreen: the oceans', () => {
     expect([...asked].sort()).toEqual(['arctic', 'atlantic', 'indian', 'pacific', 'southern']);
   });
 
+  it('tells the globe whether the seas are asked', () => {
+    setup({ continent: 'oceans' });
+    expect(globe()).toHaveAttribute('data-include-seas', 'false');
+  });
+
   it('names the ocean tapped on a wrong answer', () => {
     setup({ continent: 'oceans' });
     const wrong = world.oceans.find((o) => o.id !== target())!;
     tap(wrong.id);
     expect(verdict()).toHaveTextContent(`❌ You tapped ${wrong.properties.names.en}`);
     expect(globe()).toHaveAttribute('data-picked', wrong.id);
+  });
+});
+
+// The seas (docs/plan.md, Phase 8): a switch that adds them to the oceans.
+describe('GameScreen: the oceans with the seas', () => {
+  it('asks the oceans and the seas, each once, a sea as a sea', () => {
+    setup({ continent: 'oceans', countries: 50, includeSeas: true });
+    expect(globe()).toHaveAttribute('data-include-seas', 'true');
+    expect(screen.getByTestId('game-counter')).toHaveTextContent('1 / 29');
+    const asked = new Set<string>();
+    for (let i = 0; i < 29; i++) {
+      const id = target();
+      asked.add(id);
+      const prompt = world.byId.get(id)!.properties.kind === 'Ocean' ? 'Find this ocean:' : 'Find this sea:';
+      expect(screen.getByText(prompt), id).toBeInTheDocument();
+      tap(id);
+      advance(1_000);
+    }
+    expect([...asked].sort()).toEqual([...OCEAN_IDS, ...SEA_IDS].sort());
+  });
+
+  it('asks a sea in the language of the app', () => {
+    renderWithLanguage(
+      <GameScreen
+        world={world}
+        continent="oceans"
+        secondsPerQuestion={10}
+        countriesPerRound={50}
+        skipTiny={false}
+        includeSeas
+        onFinish={vi.fn()}
+        onQuit={vi.fn()}
+      />,
+      'fr',
+    );
+    fireEvent.click(screen.getByTestId('globe-ready'));
+    // Answer until a sea comes up: at most the five oceans come first.
+    while (world.byId.get(target())!.properties.kind === 'Ocean') {
+      tap(target());
+      advance(1_000);
+    }
+    expect(screen.getByText('Trouve cette mer :')).toBeInTheDocument();
   });
 });

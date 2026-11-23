@@ -11,12 +11,17 @@ import { App } from '../App';
 // continent (or per ocean), plus one that stands for globe.gl finishing its
 // first frame.
 vi.mock('../components/GlobeView', () => ({
-  GlobeView: ({ world, continent, skipTiny, onPick, onReady }: GlobeViewProps) => (
-    <div data-testid="globe" data-continent={continent} data-skip-tiny={String(skipTiny)}>
+  GlobeView: ({ world, continent, skipTiny, includeSeas, onPick, onReady }: GlobeViewProps) => (
+    <div
+      data-testid="globe"
+      data-continent={continent}
+      data-skip-tiny={String(skipTiny)}
+      data-include-seas={String(includeSeas)}
+    >
       <button type="button" data-testid="globe-ready" onClick={() => onReady?.()}>
         ready
       </button>
-      {[...world.countries, ...world.oceans]
+      {[...world.countries, ...world.oceans, ...(includeSeas ? world.seas : [])]
         .filter((c) => c.properties.continent === continent)
         .map((c) => (
           <button key={c.id} type="button" data-testid={`tap-${c.id}`} onClick={() => onPick(c.id)}>
@@ -164,7 +169,7 @@ describe('App: a round', () => {
     click(`tap-${first}`);
     advance(1_000);
     // One of the places a new player is asked: a tap on a tiny one would do nothing.
-    const wrong = quizPool(world, 'africa', { skipTiny: true }).find((c) => c.id !== target())!.id;
+    const wrong = quizPool(world, 'africa', { skipTiny: true, includeSeas: false }).find((c) => c.id !== target())!.id;
     click(`tap-${wrong}`);
     advance(4_000);
 
@@ -203,6 +208,31 @@ describe('App: a round', () => {
     expect(screen.getByTestId('results-score')).toHaveTextContent('5 / 5');
     const names = screen.getAllByTestId('results-row').map((r) => r.querySelector('.results__target')?.textContent);
     expect(names.sort()).toEqual(['Arctic Ocean', 'Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Southern Ocean']);
+  });
+
+  it('counts 29 oceans and seas before the map has loaded, once the seas are on', async () => {
+    vi.mocked(loadWorld).mockReturnValue(new Promise(() => {}));
+    stored({ language: 'en', countriesPerRound: 50, continent: 'oceans', includeSeas: true });
+    await open();
+    expect(screen.getByText('29 oceans and seas · 10 s each')).toBeInTheDocument();
+  });
+
+  it('plays the oceans and the seas once "Seas" is on, and remembers the switch', async () => {
+    // docs/plan.md, Phase 8: off for a new player, on asks the 24 seas too.
+    stored({ language: 'en', countriesPerRound: 10, continent: 'oceans' });
+    await open();
+    expect(screen.getByTestId('switch-seas')).toHaveAttribute('aria-checked', 'false');
+    click('switch-seas');
+    expect(saved().includeSeas).toBe(true);
+    expect(screen.getByText('10 oceans and seas · 10 s each')).toBeInTheDocument();
+    click('start-game');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-include-seas', 'true');
+    click('globe-ready');
+    for (let i = 0; i < 10; i++) {
+      click(`tap-${target()}`);
+      advance(1_000);
+    }
+    expect(screen.getByTestId('results-score')).toHaveTextContent('10 / 10');
   });
 
   it('goes home from the results', async () => {
@@ -251,6 +281,16 @@ describe('App: explore', () => {
     click('explore-home');
     expect(screen.getByTestId('start-game')).toBeInTheDocument();
     expect(saved()).toMatchObject({ continent: 'oceania', skipTiny: false });
+  });
+
+  it('explores the seas with the oceans when the switch is on', async () => {
+    stored({ language: 'en', continent: 'oceans', includeSeas: true });
+    await open();
+    click('start-explore');
+    expect(screen.getByTestId('globe')).toHaveAttribute('data-include-seas', 'true');
+    click('globe-ready');
+    click('tap-baltic-sea');
+    expect(name()).toHaveTextContent('Baltic Sea');
   });
 
   it('starts with no name each time', async () => {

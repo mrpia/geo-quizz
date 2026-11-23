@@ -38,7 +38,7 @@ describe('which countries get a ring', () => {
     // tall globe as the tests above.
     const { altitude } = CONTINENT_VIEWS.europe;
     expect(ringedIds(europe, altitude, 700)).toHaveLength(16);
-    const ringed = ringedIds(quizPool(world, 'europe', { skipTiny: true }), altitude, 700);
+    const ringed = ringedIds(quizPool(world, 'europe', { skipTiny: true, includeSeas: false }), altitude, 700);
     expect(ringed.sort()).toEqual(['FRO', 'KOS', 'LUX', 'MKD', 'MNE', 'SVN']);
   });
 
