@@ -1,4 +1,5 @@
 import raw from '../data/world.json?raw';
+import { OCEAN_IDS } from '../domain/oceans';
 import { CONTINENTS, parseWorld, type Country, type WorldTopology } from '../domain/world';
 import { continentName, countryName, dictionaries, formatSeconds, translate } from '../i18n';
 import { fr } from '../i18n/fr';
@@ -102,6 +103,29 @@ describe('continentName', () => {
       'North America',
       'South America',
       'Oceania',
+    ]);
+  });
+
+  it('names the oceans tile, Home\'s last (plan, Phase 7)', () => {
+    expect(['fr', 'de', 'en'].map((lang) => continentName('oceans', lang as 'fr'))).toEqual([
+      'Océans',
+      'Ozeane',
+      'Oceans',
+    ]);
+  });
+});
+
+// Natural Earth's marine names, first letter capitalised (plan, Phase 7).
+describe('ocean names', () => {
+  it('names the five oceans in French and German', () => {
+    const names = (lang: 'fr' | 'de') => OCEAN_IDS.map((id) => translate(lang, `ocean.${id}`));
+    expect(names('fr')).toEqual(['Océan Pacifique', 'Océan Atlantique', 'Océan Indien', 'Océan Austral', 'Océan Arctique']);
+    expect(names('de')).toEqual([
+      'Pazifischer Ozean',
+      'Atlantischer Ozean',
+      'Indischer Ozean',
+      'Südlicher Ozean',
+      'Arktischer Ozean',
     ]);
   });
 });

@@ -11,6 +11,17 @@ const withinLng = (lng: number, west: number, east: number): boolean =>
   // d3's geoBounds gives west > east for a shape that crosses the antimeridian.
   west <= east ? lng >= west && lng <= east : lng >= west || lng <= east;
 
+type Entry = { country: Country; west: number; south: number; east: number; north: number };
+
+const boxed = (countries: readonly Country[]): Entry[] =>
+  countries.map((country) => {
+    const [[west, south], [east, north]] = geoBounds(country);
+    return { country, west, south, east, north };
+  });
+
+const inside = ({ country, west, south, east, north }: Entry, [lng, lat]: LngLat): boolean =>
+  lat >= south && lat <= north && withinLng(lng, west, east) && geoContains(country, [lng, lat]);
+
 /**
  * Point-in-country lookup over the given countries only (GlobeView passes
  * the round's continent). Spherical, via d3-geo, which reads each ring's
@@ -21,13 +32,17 @@ const withinLng = (lng: number, west: number, east: number): boolean =>
  * Natural Earth cuts enclaves out of the country around them, so a point
  * lies in one country at most. Should two ever overlap, the smaller wins:
  * the enclave is the one a player would be aiming at.
+ *
+ * `covering` is what the globe draws over those places: in an oceans round
+ * (plan, Phase 7), the land over the discs. A point on it finds nothing, so a
+ * tap on Hawaii is not a tap on the Pacific.
  */
-export const createLocator = (countries: readonly Country[]): Locator => {
-  const entries = countries.map((country) => {
-    const [[west, south], [east, north]] = geoBounds(country);
-    return { country, west, south, east, north };
-  });
-  return ([lng, lat]) => {
+export const createLocator = (countries: readonly Country[], covering: readonly Country[] = []): Locator => {
+  const entries = boxed(countries);
+  const over = boxed(covering);
+  return (point) => {
+    if (over.some((entry) => inside(entry, point))) return null;
+    const [lng, lat] = point;
     let found: Country | null = null;
     for (const { country, west, south, east, north } of entries) {
       if (lat < south || lat > north || !withinLng(lng, west, east)) continue;

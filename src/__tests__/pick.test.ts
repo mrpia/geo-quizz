@@ -50,6 +50,38 @@ describe('finding the country at a point', () => {
   });
 });
 
+// The oceans (docs/plan.md, Phase 7): the land is drawn over the discs.
+describe('finding the ocean at a point', () => {
+  const land = createLocator(world.countries);
+  const oceans = createLocator(world.oceans, world.countries);
+
+  it('finds each ocean on every one of its discs', () => {
+    for (const ocean of world.oceans) {
+      expect(oceans(ocean.properties.anchor)?.id, ocean.id).toBe(ocean.id);
+    }
+    expect(oceans([-125, -28])?.id).toBe('pacific'); // the South Pacific's disc
+    expect(oceans([-17, -24])?.id).toBe('atlantic'); // the South Atlantic's
+    expect(oceans([-110, -63])?.id).toBe('southern'); // off West Antarctica
+    expect(oceans([-170, 30])?.id).toBe('pacific'); // west of the antimeridian's 180°…
+    expect(oceans([178, 25])?.id).toBe('pacific'); // …and east of it
+  });
+
+  it('finds nothing on land that lies on a disc', () => {
+    const hawaii: LngLat = [-155.5, 19.6];
+    const greenland: LngLat = [-40, 82.5];
+    expect(land(hawaii)?.id).toBe('USA');
+    expect(land(greenland)?.id).toBe('GRL');
+    expect(oceans(hawaii)).toBeNull();
+    expect(oceans(greenland)).toBeNull();
+  });
+
+  it('finds nothing in the water between the discs', () => {
+    expect(oceans([-60, 30])).toBeNull(); // the Atlantic, off Bermuda
+    expect(oceans([18, 35])).toBeNull(); // the Ionian Sea
+    expect(oceans([-80, -45])).toBeNull(); // the Pacific, off Chile
+  });
+});
+
 describe('resolving a tap', () => {
   const europe = countriesOf(world, 'europe');
   const locate = createLocator(europe);

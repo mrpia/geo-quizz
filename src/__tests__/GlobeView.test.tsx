@@ -1,18 +1,22 @@
 import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import raw from '../data/world.json?raw';
-import { parseWorld, type WorldTopology } from '../domain/world';
+import { OCEAN_IDS } from '../domain/oceans';
+import { parseWorld, type Country, type WorldTopology } from '../domain/world';
 import { CONTINENT_VIEWS, FRAME_MARGIN_PX, isWithinHorizon, viewOver, type View } from '../domain/view';
 import { LanguageProvider } from '../i18n/I18nContext';
 import { GlobeView, MAX_ALTITUDE, MIN_ALTITUDE, type GlobeViewProps } from '../components/GlobeView';
 import { shapeCount } from '../components/globeShapes';
 import {
   ALTITUDE,
+  BORDER_COLOR,
   HOVER_COLOR,
   MAP_PALETTE,
   NO_HIGHLIGHT,
   OTHER_LAND_COLOR,
   SELECTED_COLOR,
+  ZONE_COLOR,
+  ZONE_EDGE_COLOR,
   type GlobeHighlight,
 } from '../components/globeLook';
 
@@ -134,10 +138,13 @@ const live = () => {
 };
 const accessor = (name: string) => live().props.get(name) as Accessor;
 
-/** What globe.gl does in an update after `polygonsData`: build every country's shapes. */
-const buildShapes = () => {
+/**
+ * What globe.gl does in an update after `polygonsData`: build every shape,
+ * the countries', and the oceans' discs in an oceans round.
+ */
+const buildShapes = (places: readonly Country[] = world.countries) => {
   const built = () => ({ __globeObjType: 'polygon', children: [{ geometry: { attributes: { position: {} } } }] });
-  live().shapes = Array.from({ length: shapeCount(world.countries) }, built);
+  live().shapes = Array.from({ length: shapeCount(places) }, built);
 };
 const globeReady = () => act(() => (live().props.get('onGlobeReady') as () => void)());
 const datum = (id: string) => (live().props.get('polygonsData') as { country: { id: string } }[]).find((d) => d.country.id === id)!;
@@ -737,6 +744,108 @@ describe('GlobeView: without the tiny countries', () => {
     expect(live().props.get('polygonsData')).toBe(before);
     expect(MAP_PALETTE).toContain(accessor('polygonCapColor')(datum('MLT')));
     expect(ringIds()).toContain('MLT');
+  });
+});
+
+// The oceans (docs/plan.md, Phase 7): faint discs, the land grey over them.
+describe('GlobeView: the oceans', () => {
+  const draw = () => act(() => live().scene.onAfterRender?.());
+  const ids = () => (live().props.get('polygonsData') as { country: { id: string } }[]).map((d) => d.country.id);
+
+  it('adds the five discs to the land in an oceans round, and only then', async () => {
+    const { unmount } = await setup({ continent: 'oceans' });
+    expect(ids()).toEqual([...world.countries.map((c) => c.id), ...OCEAN_IDS]);
+    unmount();
+    await setup({ continent: 'europe' });
+    expect(ids().some((id) => (OCEAN_IDS as readonly string[]).includes(id))).toBe(false);
+  });
+
+  it('draws the discs under the land, with a light edge, and greys every country', async () => {
+    await setup({ continent: 'oceans' });
+    for (const id of OCEAN_IDS) {
+      expect(accessor('polygonAltitude')(datum(id)), id).toBe(ALTITUDE.zone);
+      expect(accessor('polygonCapColor')(datum(id)), id).toBe(ZONE_COLOR);
+      expect(accessor('polygonStrokeColor')(datum(id)), id).toBe(ZONE_EDGE_COLOR);
+      expect(accessor('polygonSideColor')(datum(id)), id).toBe('');
+    }
+    for (const id of ['FRA', 'BRA', 'AUS', 'ATA']) {
+      expect(accessor('polygonAltitude')(datum(id)), id).toBe(ALTITUDE.base);
+      expect(accessor('polygonCapColor')(datum(id)), id).toBe(OTHER_LAND_COLOR);
+      expect(accessor('polygonStrokeColor')(datum(id)), id).toBe(BORDER_COLOR);
+    }
+  });
+
+  it('waits for the discs as well as the countries', async () => {
+    const onReady = vi.fn();
+    await setup({ continent: 'oceans', onReady });
+    globeReady();
+    buildShapes();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(onReady).not.toHaveBeenCalled();
+    buildShapes([...world.countries, ...world.oceans]);
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+  });
+
+  it('starts from the whole globe, and recentres there', async () => {
+    await setup({ continent: 'oceans' });
+    expect(live().pov).toEqual(CONTINENT_VIEWS.oceans);
+    live().pov = { lat: 40, lng: 100, altitude: 1 };
+    fireEvent.click(screen.getByTestId('globe-recentre'));
+    expect(live().pov).toEqual(CONTINENT_VIEWS.oceans);
+  });
+
+  it('picks the ocean of a disc under a tap, on any of its discs', async () => {
+    const { onPick } = await setup({ continent: 'oceans' });
+    for (const [lng, lat] of [anchor('atlantic'), [-17, -24], [-110, -63]] as const) {
+      const p = toScreen(lng, lat);
+      tap(p.x, p.y);
+    }
+    expect(onPick.mock.calls).toEqual([['atlantic'], ['atlantic'], ['southern']]);
+  });
+
+  it('picks nothing on land that lies on a disc, nor in the water between the discs', async () => {
+    const { onPick } = await setup({ continent: 'oceans' });
+    for (const [lng, lat] of [
+      [-155.5, 19.6], // Hawaii, on the North Pacific's disc
+      [-60, 30], // the Atlantic off Bermuda, outside its disc
+      [2, 47], // France
+    ] as const) {
+      const p = toScreen(lng, lat);
+      tap(p.x, p.y);
+    }
+    expect(onPick).not.toHaveBeenCalled();
+  });
+
+  it('lights a disc amber under the mouse and outlines it, and never the land', async () => {
+    await setup({ continent: 'oceans' });
+    const hover = live().props.get('onPolygonHover') as (d: object | null) => void;
+    fireEvent.pointerMove(live().canvas, { pointerId: 1, clientX: 5, clientY: 5, pointerType: 'mouse' });
+    act(() => hover(datum('indian')));
+    expect(accessor('polygonCapColor')(datum('indian'))).toBe(HOVER_COLOR);
+    expect(screen.getByTestId('globe-hover-outline')).toHaveAttribute('data-id', 'indian');
+    act(() => hover(datum('FRA')));
+    expect(accessor('polygonCapColor')(datum('FRA'))).toBe(OTHER_LAND_COLOR);
+    expect(screen.queryByTestId('globe-hover-outline')).not.toBeInTheDocument();
+  });
+
+  it("outlines the answer's discs and marks the first one", async () => {
+    await setup({
+      continent: 'oceans',
+      highlight: { pickedId: 'indian', correctId: 'atlantic', pickedColor: '#ef4444', correctColor: '#22c55e' },
+    });
+    draw();
+    const outline = screen.getByTestId('globe-answer-outline');
+    expect(outline).toHaveAttribute('data-id', 'atlantic');
+    expect(outline.querySelector('path')?.getAttribute('d')).toMatch(/^M[\d.-]+ [\d.-]+L/);
+    expect(accessor('polygonCapColor')(datum('atlantic'))).toBe('#22c55e');
+    expect(accessor('polygonCapColor')(datum('indian'))).toBe('#ef4444');
+    expect(screen.getAllByTestId('globe-mark').map((m) => m.dataset.id)).toEqual(['atlantic', 'indian']);
+  });
+
+  it('gives the e2e tests the point of an ocean on screen', async () => {
+    await setup({ continent: 'oceans' });
+    live().pov = { lat: 0, lng: -30, altitude: 2.2 };
+    expect(window.__geoQuizz?.screenPoint('atlantic')).toEqual(pointOf('atlantic'));
   });
 });
 

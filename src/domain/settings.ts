@@ -1,12 +1,16 @@
 import { isLanguage, preferredLanguage, type Language } from '../i18n/language';
-import { CONTINENTS, type Continent } from './world';
+import { AREAS, type Area, type Continent } from './world';
 
 export type Settings = {
   language: Language;
   secondsPerQuestion: number;
   countriesPerRound: number;
-  /** The continent last played, preselected on the Home screen. */
-  continent: Continent;
+  /**
+   * The continent last played, or the oceans (plan, Phase 7), preselected on
+   * the Home screen. The field kept its name when the oceans arrived, so
+   * choices saved before 0.6.0 read as they were.
+   */
+  continent: Area;
   /** Off: no countdown and no timeout, a question waits for a tap. */
   timeLimitOn: boolean;
   /**
@@ -26,8 +30,8 @@ export const DEFAULT_CONTINENT: Continent = 'europe';
 export const DEFAULT_TIME_LIMIT_ON = true;
 export const DEFAULT_SKIP_TINY = true;
 
-const isContinent = (value: unknown): value is Continent =>
-  typeof value === 'string' && (CONTINENTS as readonly string[]).includes(value);
+const isArea = (value: unknown): value is Area =>
+  typeof value === 'string' && (AREAS as readonly string[]).includes(value);
 
 export const SETTINGS_BOUNDS = {
   secondsPerQuestion: { min: 3, max: 60 },
@@ -87,7 +91,7 @@ export const sanitizeSettings = (
       SETTINGS_BOUNDS.countriesPerRound,
       defaults.countriesPerRound,
     ),
-    continent: isContinent(raw.continent) ? raw.continent : defaults.continent,
+    continent: isArea(raw.continent) ? raw.continent : defaults.continent,
     timeLimitOn: readSwitch(raw.timeLimitOn, defaults.timeLimitOn),
     skipTiny: readSwitch(raw.skipTiny, defaults.skipTiny),
   };

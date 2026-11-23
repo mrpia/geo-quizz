@@ -2,7 +2,9 @@
 // coordinates. `node:fs` would work too, but would pull Node's types into src/.
 import { geoArea } from 'd3-geo';
 import raw from '../data/world.json?raw';
+import { OCEAN_IDS } from '../domain/oceans';
 import {
+  AREAS,
   CONTINENTS,
   TINY_BELOW_KM2,
   countriesOf,
@@ -143,5 +145,43 @@ describe('the quiz pool', () => {
     expect(dropped.sort()).toEqual(['ALD', 'AND', 'GGY', 'IMN', 'JEY', 'LIE', 'MCO', 'MLT', 'SMR', 'VAT']);
     // 1,036 km², the closest to the cut-off on the kept side.
     expect(ids('europe', true)).toContain('FRO');
+  });
+});
+
+/** The oceans (docs/plan.md, Phase 7): places of their own, beside the land. */
+describe('the oceans in the world', () => {
+  it('holds the five oceans apart from the land of the data file', () => {
+    expect(world.oceans.map((o) => o.id)).toEqual([...OCEAN_IDS]);
+    expect(world.countries.some((c) => c.properties.continent === 'oceans')).toBe(false);
+  });
+
+  it('finds an ocean by id, as it finds a country', () => {
+    expect(world.byId.get('indian')?.properties.names.de).toBe('Indischer Ozean');
+    expect(world.byId.get('CHE')?.properties.names.fr).toBe('Suisse');
+    expect(world.byId.size).toBe(242 + 5);
+  });
+
+  it('offers the oceans after the continents', () => {
+    expect(AREAS).toEqual([...CONTINENTS, 'oceans']);
+  });
+
+  it('asks the five oceans in an oceans round, tiny switch or not', () => {
+    for (const skipTiny of [false, true]) {
+      expect(quizPool(world, 'oceans', { skipTiny }).map((o) => o.id)).toEqual([...OCEAN_IDS]);
+    }
+  });
+
+  it('never asks an ocean on a continent', () => {
+    for (const continent of CONTINENTS) {
+      const pool = quizPool(world, continent, { skipTiny: false });
+      expect(pool.some((c) => c.properties.continent === 'oceans'), continent).toBe(false);
+    }
+  });
+
+  it('refuses a data file that claims to hold the oceans', () => {
+    const topology = JSON.parse(raw) as WorldTopology;
+    const first = topology.objects.countries.geometries[0];
+    first.properties = { ...first.properties!, continent: 'oceans' };
+    expect(() => parseWorld(topology)).toThrow(/no known continent/);
   });
 });

@@ -8,7 +8,10 @@ import {
   RIGHT_COLOR,
   SELECTED_COLOR,
   WRONG_COLOR,
+  ZONE_COLOR,
+  ZONE_EDGE_COLOR,
   capColorOf,
+  strokeColorOf,
   type GlobeHighlight,
 } from '../components/globeLook';
 
@@ -126,10 +129,35 @@ describe('cap colours', () => {
   });
 });
 
+// The oceans (docs/plan.md, Phase 7): faint discs, lit up like the countries.
+describe("the oceans' discs", () => {
+  it('draws every disc in one translucent light blue, with a lighter edge', () => {
+    for (const ocean of world.oceans) expect(capColorOf(ocean, true, null, NONE), ocean.id).toBe(ZONE_COLOR);
+    expect(ZONE_COLOR).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+    expect(strokeColorOf(country('pacific'))).toBe(ZONE_EDGE_COLOR);
+    expect(strokeColorOf(country('FRA'))).not.toBe(ZONE_EDGE_COLOR);
+  });
+
+  it('lights a disc up as it lights a country: amber, green, red', () => {
+    expect(capColorOf(country('indian'), true, 'indian', NONE)).toBe(HOVER_COLOR);
+    const highlight = { ...NONE, pickedId: 'arctic', correctId: 'indian' };
+    expect(capColorOf(country('arctic'), true, null, highlight)).toBe(WRONG_COLOR);
+    expect(capColorOf(country('indian'), true, 'indian', highlight)).toBe(RIGHT_COLOR);
+    expect(capColorOf(country('pacific'), true, null, NONE, 'pacific')).toBe(SELECTED_COLOR);
+  });
+});
+
 describe('altitude', () => {
   it('keeps every country at one low altitude: nothing rises', () => {
     // The owner's call of 2026-11-21: no raise for hover, answers or picks.
-    expect(Object.keys(ALTITUDE)).toEqual(['base']);
+    expect(Object.keys(ALTITUDE)).toEqual(['base', 'zone']);
     expect(ALTITUDE.base).toBeLessThanOrEqual(0.01);
+  });
+
+  it("puts the oceans' discs between the sea and the land, so coasts and islands cover them", () => {
+    expect(ALTITUDE.zone).toBeGreaterThan(0);
+    expect(ALTITUDE.zone).toBeLessThan(ALTITUDE.base);
+    // Far enough apart that the depth buffer always tells them apart.
+    expect(ALTITUDE.base - ALTITUDE.zone).toBeGreaterThanOrEqual(0.002);
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadWorld } from './data/loadWorld';
 import type { Answer } from './domain/game';
+import { OCEAN_IDS } from './domain/oceans';
 import type { Settings } from './domain/settings';
 import { quizPool, type World } from './domain/world';
 import { LanguageProvider, useI18n } from './i18n/I18nContext';
@@ -42,12 +43,15 @@ export const App = () => {
     setRound((n) => n + 1);
     setScreen('game');
   };
-  const roundSize = world
-    ? Math.min(
-        settings.countriesPerRound,
-        quizPool(world, settings.continent, { skipTiny: settings.skipTiny }).length,
-      )
-    : settings.countriesPerRound;
+  // A continent's places are known once the map has loaded; the oceans are
+  // always five, so Home never shows "10 oceans" while the map loads.
+  const poolSize =
+    settings.continent === 'oceans'
+      ? OCEAN_IDS.length
+      : world
+        ? quizPool(world, settings.continent, { skipTiny: settings.skipTiny }).length
+        : null;
+  const roundSize = poolSize === null ? settings.countriesPerRound : Math.min(settings.countriesPerRound, poolSize);
 
   return (
     <LanguageProvider lang={settings.language}>

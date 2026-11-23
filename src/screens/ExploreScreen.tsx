@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import { GlobeView } from '../components/GlobeView';
-import type { Continent, World } from '../domain/world';
+import type { Area, World } from '../domain/world';
 import { countryName } from '../i18n';
 import { useI18n } from '../i18n/I18nContext';
 import './ExploreScreen.css';
 
 type Props = {
   world: World;
-  continent: Continent;
+  /** A continent, or the oceans (plan, Phase 7): then a tap on a disc names its ocean. */
+  continent: Area;
   /**
    * Leave out the tiny places (`quizPool`), as a round does: they are grey,
    * and a tap on one names nothing.
@@ -57,7 +58,7 @@ export const ExploreScreen = ({ world, continent, skipTiny, onHome }: Props) => 
               keeps its height and the globe is not resized. */}
           {ready ? (
             <p className="explore__prompt" data-testid="explore-prompt">
-              {t('explore.prompt')}
+              {t(continent === 'oceans' ? 'explore.promptOcean' : 'explore.prompt')}
             </p>
           ) : (
             <p className="explore__prompt" aria-hidden="true">

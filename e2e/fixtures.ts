@@ -2,15 +2,16 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import type {} from '../src/components/geoQuizzHook';
 import type { Settings } from '../src/domain/settings';
-import { parseWorld, quizPool, type Continent, type WorldTopology } from '../src/domain/world';
+import { parseWorld, quizPool, type Area, type WorldTopology } from '../src/domain/world';
 
 /**
  * Deterministic rounds for the specs (the pattern of math-quizz's
  * e2e/fixtures.ts): settings written into localStorage and the round's
  * countries fixed before the page loads, so a spec knows which country it
  * will be asked and can pick one whose anchor it can click. Anchors to
- * avoid: behind the horizon at the continent's view (ATF, HMD, PCN), off
- * the canvas, or within a ring's bullseye (src/domain/pick.ts).
+ * avoid: behind the horizon at the continent's view (ATF, HMD, PCN; the
+ * Pacific's and the Arctic's at the oceans' view), off the canvas, or within
+ * a ring's bullseye (src/domain/pick.ts).
  */
 
 const SETTINGS_KEY = 'geoquizz:settings';
@@ -63,7 +64,7 @@ export const seedSettings = async (page: Page, settings: Partial<Settings>) => {
  */
 export const seedRound = async (
   page: Page,
-  settings: Partial<Settings> & { continent: Continent },
+  settings: Partial<Settings> & { continent: Area },
   ids: readonly string[],
 ) => {
   // The pool from the settings the page is given, so the draw and the game agree.

@@ -15,17 +15,18 @@ import {
 } from '../domain/outline';
 import { ringedIds } from '../domain/rings';
 import { CONTINENT_VIEWS, isInFrame, isWithinHorizon, viewOver } from '../domain/view';
-import { quizPool, type Continent, type Country, type World } from '../domain/world';
+import { quizPool, type Area, type Country, type World } from '../domain/world';
 import { useI18n } from '../i18n/I18nContext';
 import type { GeoQuizzHook } from './geoQuizzHook';
 import { countDrawnShapes, shapeCount } from './globeShapes';
 import {
   ALTITUDE,
-  BORDER_COLOR,
   NO_HIGHLIGHT,
   OCEAN_COLOR,
   SPACE_COLOR,
+  altitudeOf,
   capColorOf,
+  strokeColorOf,
   type GlobeHighlight,
 } from './globeLook';
 import './GlobeView.css';
@@ -45,7 +46,12 @@ const FLY_MS = 800;
 
 export type GlobeViewProps = {
   world: World;
-  continent: Continent;
+  /**
+   * The round's continent, or the oceans (plan, Phase 7): then the oceans'
+   * discs are drawn under the land, all land is grey, and only a disc can be
+   * picked.
+   */
+  continent: Area;
   /**
    * Leave out the continent's tiny places (`quizPool`): they turn grey, get
    * no ring and cannot be picked, like land outside the continent.
@@ -144,16 +150,26 @@ export const GlobeView = ({
   const [height, setHeight] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
+  const oceansRound = continent === 'oceans';
   // The round's places: everything below (colours, rings, hover, picks) reads these.
   const countries = useMemo(() => quizPool(world, continent, { skipTiny }), [world, continent, skipTiny]);
   const inPlay = useMemo(() => new Set(countries.map((c) => c.id)), [countries]);
-  const locate = useMemo(() => pick?.createLocator(countries) ?? null, [pick, countries]);
-  // One datum per country for the life of the world: three-globe keys its
-  // meshes by datum, so new objects would rebuild all 1,620 shapes.
-  const polygons = useMemo<PolygonDatum[]>(
-    () => world.countries.map((country) => ({ country })),
-    [world],
+  // In an oceans round the land is drawn over the discs, so a tap on it is
+  // not a tap on the ocean underneath.
+  const locate = useMemo(
+    () => pick?.createLocator(countries, oceansRound ? world.countries : []) ?? null,
+    [pick, countries, oceansRound, world],
   );
+  // One datum per shape for the life of the world: three-globe keys its
+  // meshes by datum, so new objects would rebuild all 1,620 shapes. The
+  // oceans' discs join the land in an oceans round only.
+  const landData = useMemo<PolygonDatum[]>(() => world.countries.map((country) => ({ country })), [world]);
+  const oceanData = useMemo<PolygonDatum[]>(() => world.oceans.map((country) => ({ country })), [world]);
+  const polygons = useMemo(
+    () => (oceansRound ? [...landData, ...oceanData] : landData),
+    [landData, oceanData, oceansRound],
+  );
+  const drawn = useMemo(() => polygons.map(({ country }) => country), [polygons]);
 
   const { pickedId, correctId, pickedColor, correctColor } = highlight;
   // Worked out here rather than inside globe.gl's accessors, so a bad value
@@ -161,9 +177,9 @@ export const GlobeView = ({
   const caps = useMemo(() => {
     const shown = { pickedId, correctId, pickedColor, correctColor };
     return new Map<string, string>(
-      world.countries.map((c) => [c.id, capColorOf(c, inPlay.has(c.id), hoverId, shown, selectedId)]),
+      drawn.map((c) => [c.id, capColorOf(c, inPlay.has(c.id), hoverId, shown, selectedId)]),
     );
-  }, [world, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor, selectedId]);
+  }, [drawn, inPlay, hoverId, pickedId, correctId, pickedColor, correctColor, selectedId]);
 
   if (selectedId !== null && !world.byId.has(selectedId)) {
     throw new Error(`GlobeView: no country ${JSON.stringify(selectedId)} to select`);
@@ -237,12 +253,13 @@ export const GlobeView = ({
           .polygonGeoJsonGeometry(
             (d) => countryOf(d).geometry as unknown as { type: string; coordinates: number[] },
           )
-          .polygonStrokeColor(() => BORDER_COLOR)
-          // Nothing rises (the owner's call, 2026-11-21): one altitude, no
-          // walls, nothing to animate. three-globe builds walls only for a
-          // truthy side colour, and walls under all 1,620 shapes made a
-          // SwiftShader frame seven times slower (2,280 ms against 319 ms).
-          .polygonAltitude(() => ALTITUDE.base)
+          .polygonStrokeColor((d) => strokeColorOf(countryOf(d)))
+          // Nothing rises (the owner's call, 2026-11-21): one altitude for
+          // the land, no walls, nothing to animate. three-globe builds walls
+          // only for a truthy side colour, and walls under all 1,620 shapes
+          // made a SwiftShader frame seven times slower (2,280 ms against
+          // 319 ms). The oceans' discs sit lower, under the land.
+          .polygonAltitude((d) => altitudeOf(countryOf(d)))
           .polygonSideColor(() => '')
           .polygonsTransitionDuration(0)
           .htmlElement(makeRing)
@@ -305,7 +322,7 @@ export const GlobeView = ({
   // globe.gl renders on every frame, so by then they have been on screen.
   useEffect(() => {
     if (!globe || shapesDrawn) return;
-    const expected = shapeCount(world.countries);
+    const expected = shapeCount(drawn);
     let built = false;
     let frame = 0;
     const check = () => {
@@ -318,7 +335,7 @@ export const GlobeView = ({
     };
     frame = requestAnimationFrame(check);
     return () => cancelAnimationFrame(frame);
-  }, [globe, world, shapesDrawn]);
+  }, [globe, drawn, shapesDrawn]);
 
   useEffect(() => {
     if (!globe) return;
