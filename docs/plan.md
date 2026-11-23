@@ -42,6 +42,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
 - [x] **Phase 6 — Explore mode** (0.4.0, 0.4.1)
 - [x] **Phase 7 — Oceans** (0.6.0)
+- [x] **Phase 8 — Seas, and Home's tiles in two groups** (0.7.0)
 
 ### Phase 0 — Foundation (done)
 
@@ -667,7 +668,7 @@ Decided with the owner on 2026-11-23:
   whole globe. The "Tiny countries" switch is hidden while it is chosen.
   Rejected: a Countries / Oceans choice above the continent picker.
 - **Oceans first.** The seas come later, as a switch that makes the game
-  harder (BACKLOG, "Seas").
+  harder (BACKLOG, "Seas"; built in Phase 8).
 
 Proposed here, to be checked on the tablet:
 
@@ -748,7 +749,93 @@ Done when: an oceans round plays from Home to the results, Explore names
 the oceans, continent rounds look and play as before, and both suites pass
 in CI.
 
+### Phase 8 — Seas, and Home's tiles in two groups (done)
+
+The owner's request of 2026-11-23: add the seas to the oceans part of the
+game, under the one tile, with "also include seas" as a switch that makes
+the game harder, like "Tiny countries" for a continent (BACKLOG's "Seas",
+built here). Then, during the phase: group Home's tiles as land and water,
+since Oceania and the oceans side by side looked alike, with a plain title
+each and at most a thin line between them, no box of their own.
+
+Decided with the owner on 2026-11-23:
+
+- **24 seas**: Natural Earth's scalerank 1 seas, gulfs and bays (the 22 its
+  1:50m marine layer labels on a world map), plus the North Sea and the
+  Baltic, which it ranks second but a Swiss child knows from home.
+  Rejected: rank 1 alone, and ranks 1 and 2 (about 47, with many small
+  Southeast Asian and Arctic seas, most of them tap rings at the start
+  view).
+- **The Caspian Sea is asked**, though it is a lake: atlases print it as a
+  sea, and the marine layer ranks it first.
+- **The tile reads "Oceans & seas"** ("Océans et mers", "Ozeane und Meere").
+  Rejected: keeping "Oceans".
+- **0.7.0** ships with this phase.
+
+Measured before building (Natural Earth 1:50m marine polygons, v5.1.2):
+
+- The Sargasso Sea is the middle of the North Atlantic, with no coast; its
+  disc would overlap the North Atlantic's by about 5°. The Scotia Sea, the
+  Drake Passage and the Luzon Strait have broken polygons (zero area under
+  d3-geo). None of the four is among the 24.
+- The backlog's note that the German names of Hudson Bay and Baffin Bay are
+  "in English" by mistake does not hold: German Wikipedia's own titles are
+  "Hudson Bay" and "Baffin Bay". The names that do disagree with Wikidata or
+  Wikipedia are in `docs/data.md`, "Sea zones".
+
+As built, proposals to check on the tablet:
+
+- **Discs, like the oceans'**: one per sea, at the point of the sea farthest
+  from its coasts and its limits with the neighbouring seas, with four
+  fifths of the radius that fits there (`SEA_ZONE_SHARE`), so a strip of
+  water shows round it. `tools/sea-zones.mjs` (`pnpm data:seas`) finds the
+  points; `docs/data.md` has the method. The radii run from 0.9° (the
+  Baltic) to 7.3° (the Philippine Sea). Land covers none of any disc
+  (sampled), and the closest two, the North Sea's and the Baltic's, are
+  5.7° apart; no sea's disc comes nearer an ocean's than 6.5° (Baffin Bay
+  and the Arctic).
+- **Small seas get tap rings**, as tiny countries do, by the same rule: at
+  the start view on a 700 px tall globe, a disc is about 12 px across per
+  degree of radius, and below 24 px it is ringed: eight of the 24, from the
+  Baltic (11 px) to Baffin Bay (22 px). No size floor.
+- **15 of the 24 face away at the start view** (Africa in the middle): the
+  seas of the Americas, East Asia, Australia and Antarctica. The player turns
+  the globe, as for the Pacific; `BEYOND_HORIZON` lists them.
+- **"Find this sea:"** ("Trouve cette mer :", "Finde dieses Meer:") for
+  every sea, the gulfs and bays included: the switch is "Seas", and their
+  names say what they are. A prompt by kind would not translate: the Bay of
+  Bengal is a *Golf* in German and a *golfe* in French. Explore asks "Tap an
+  ocean or a sea to see its name" while the seas are on.
+- **Discs are labels, not borders.** With the seas on, a tap on the
+  Caribbean's disc when the question is the Atlantic is wrong, though the
+  Caribbean is part of the Atlantic.
+- **The switch** reads "Seas" ("Mers", "Meere"), a noun like the others,
+  and takes the place of "Tiny countries" while the oceans tile is chosen.
+  Off for a new player and for anyone updating from 0.6.0. It applies to
+  Explore too. Home's summary says "10 oceans and seas · 10 s each".
+- **Home's groups** are titled "Land" and "Water" in English and German
+  ("Land", "Wasser"); in French, "Sur terre" and "Sur l'eau", which answer
+  "Où veux-tu jouer ?" where a bare "Terre" would read as the planet. The
+  titles are small and muted, with a thin line between the groups. The
+  water group's one tile keeps a land tile's width.
+
+1. `src/domain/seas.ts`: the 24 discs, as places like the oceans
+   (`continent: 'oceans'`, kind "Sea"), with names in the dictionaries
+   (`sea.*`). `World` gets `seas`; `quizPool(world, 'oceans', { includeSeas
+   })` adds them after the oceans.
+2. Setting `includeSeas`, default off; anything but a boolean reads as off.
+3. Home: the two groups, the tile's name, the switch, the summary. Game and
+   Explore: the prompts. GlobeView draws, rings and picks the seas' discs.
+4. Tests: `seas.test.ts` holds the discs to the land of `world.json` and to
+   the oceans' discs; e2e clicks a sea's disc, a small sea's ring, and land.
+5. `docs/data.md` "Sea zones"; BACKLOG's "Seas" removed; `CHANGELOG.md`;
+   0.7.0.
+
+Done when: an oceans round with the seas plays from Home to the results,
+Explore names the seas, an oceans round without them is unchanged, and both
+suites pass in CI.
+
 ## Later (not planned yet)
 
-Ideas beyond Phase 7 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
+Ideas beyond Phase 8 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
 there into a phase here once the owner decides to build it.

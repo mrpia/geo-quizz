@@ -133,6 +133,73 @@ the same file checks that at the Pole and across the antimeridian.
 The names are in the dictionaries (`ocean.*` in `src/i18n/`), taken from
 Natural Earth's marine layer with the first letter capitalised.
 
+## Sea zones
+
+The 24 seas (docs/plan.md, Phase 8) are discs too, built in code by
+`src/domain/seas.ts`, and only drawn in an oceans round with the "Seas"
+switch on. Unlike the oceans' centres, theirs are not placed by hand: they
+come from Natural Earth's **1:50m Marine Areas** (`geography_marine_polys`),
+release **v5.1.2**, public domain like the countries:
+
+    https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_geography_marine_polys.geojson
+
+`tools/sea-zones.mjs` (`pnpm data:seas`) downloads it into `.cache/`, pins
+its SHA-256, and prints each sea's centre and room; the numbers are copied
+into `SEAS`. The file is not shipped and the app never reads it.
+
+**Which seas.** Natural Earth's scalerank 1 seas, gulfs and bays (the ones
+it labels on a world map), plus the North Sea and the Baltic, which it ranks
+second. The Caspian Sea, a lake, is among them, as atlases print it. Left
+out: the Sargasso Sea, which has no coast and lies under the North
+Atlantic's disc, and the Scotia Sea, the Drake Passage and the Luzon
+Strait, whose polygons have no area under d3-geo.
+
+**Where the disc goes.** At the point of the sea farthest from its edges,
+which are its coasts and its limits with the neighbouring seas as Natural
+Earth draws them. The search runs in an azimuthal equidistant projection
+centred on the sea (so a sea near the Pole is not stretched east to west),
+and the distance is then measured again on the sphere. The disc's radius is
+four fifths of that distance (`SEA_ZONE_SHARE`), from 0.9° for the Baltic to
+7.3° for the Philippine Sea.
+
+Natural Earth cuts smaller seas out of larger ones, so some seas are joined
+with their pieces first, and the limits the pieces share drop out:
+
+| Sea | Joined with |
+|---|---|
+| Mediterranean Sea | Tyrrhenian, Ionian, Adriatic and Balearic seas, Gulf of Lion |
+| Baltic Sea | Gulf of Bothnia, Gulf of Finland |
+| Gulf of Mexico | Bay of Campeche |
+| Hudson Bay | James Bay |
+
+The Aegean cannot be joined: its polygon shares no vertex with the
+Mediterranean's or the Ionian's. The disc lies far from it either way. The
+script fails if a listed piece shares no limit, so a join cannot silently
+stop working. The Ross Sea is cut in two at the antimeridian; the cut is
+not an edge of the sea, and the script ignores it.
+
+`src/__tests__/seas.test.ts` holds the discs to the land of the committed
+`world.json` (every centre in water, land on less than a twentieth of each
+disc; the sampled share is 0 for all 24) and keeps each disc at least 5°
+from every other disc, the oceans' included. The closest pair is the North
+Sea and the Baltic, 5.7° apart.
+
+**Names.** In the dictionaries (`sea.*` in `src/i18n/`), first letter
+capitalised. They are Natural Earth's `name_en`, `name_fr` and `name_de`,
+compared on 2026-11-23 with the [Wikidata](https://www.wikidata.org/) label
+and the English, French and German Wikipedia title of each sea (Natural
+Earth gives its `wikidataid`). They agree for all but two:
+
+| Sea | Lang | Natural Earth | Wikidata | Wikipedia | Shipped |
+|---|---|---|---|---|---|
+| Baffin Bay (Q37040) | fr | mer de Baffin | baie de Baffin | Baie de Baffin | Baie de Baffin |
+| Weddell Sea (Q173343) | de | Weddell-Meer | Weddell-Meer | Weddellmeer | Weddellmeer |
+
+German Wikipedia's titles for Hudson Bay and Baffin Bay are "Hudson Bay"
+and "Baffin Bay", the same as Natural Earth's, and ship as they are. Names
+that some countries dispute, the Sea of Japan and the Persian Gulf among
+them, follow Natural Earth and Wikidata.
+
 ## Output format
 
 `src/data/world.json` is a TopoJSON topology with one object, `countries`.
