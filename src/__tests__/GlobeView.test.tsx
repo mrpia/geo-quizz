@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import raw from '../data/world.json?raw';
 import { OCEAN_IDS } from '../domain/oceans';
+import { SEA_IDS } from '../domain/seas';
 import { parseWorld, type Country, type WorldTopology } from '../domain/world';
 import { CONTINENT_VIEWS, FRAME_MARGIN_PX, isWithinHorizon, viewOver, type View } from '../domain/view';
 import { LanguageProvider } from '../i18n/I18nContext';
@@ -151,7 +152,7 @@ const datum = (id: string) => (live().props.get('polygonsData') as { country: { 
 
 const setup = async (props: Partial<GlobeViewProps> = {}) => {
   const onPick = vi.fn();
-  const all: GlobeViewProps = { world, continent: 'europe', skipTiny: false, onPick, ...props };
+  const all: GlobeViewProps = { world, continent: 'europe', skipTiny: false, includeSeas: false, onPick, ...props };
   const ui = (p: GlobeViewProps) => (
     <StrictMode>
       <LanguageProvider lang="en">
@@ -234,7 +235,7 @@ describe('GlobeView: setup', () => {
     fake.failCreate = true;
     render(
       <LanguageProvider lang="en">
-        <GlobeView world={world} continent="europe" skipTiny={false} onPick={vi.fn()} />
+        <GlobeView world={world} continent="europe" skipTiny={false} includeSeas={false} onPick={vi.fn()} />
       </LanguageProvider>,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('The map could not be loaded.');
@@ -846,6 +847,64 @@ describe('GlobeView: the oceans', () => {
     await setup({ continent: 'oceans' });
     live().pov = { lat: 0, lng: -30, altitude: 2.2 };
     expect(window.__geoQuizz?.screenPoint('atlantic')).toEqual(pointOf('atlantic'));
+  });
+});
+
+// The seas (docs/plan.md, Phase 8): discs like the oceans', with the switch on.
+describe('GlobeView: the oceans with the seas', () => {
+  const ids = () => (live().props.get('polygonsData') as { country: { id: string } }[]).map((d) => d.country.id);
+  const ringIds = () => (live().props.get('htmlElementsData') as { id: string }[]).map((d) => d.id);
+
+  it("adds the seas' discs after the oceans' with the switch on, and never on a continent", async () => {
+    const { unmount } = await setup({ continent: 'oceans', includeSeas: true });
+    expect(ids()).toEqual([...world.countries.map((c) => c.id), ...OCEAN_IDS, ...SEA_IDS]);
+    unmount();
+    await setup({ continent: 'europe', includeSeas: true });
+    expect(ids()).toEqual(world.countries.map((c) => c.id));
+  });
+
+  it("leaves the seas' discs out while the switch is off", async () => {
+    await setup({ continent: 'oceans' });
+    expect(ids().some((id) => (SEA_IDS as readonly string[]).includes(id))).toBe(false);
+  });
+
+  it("draws a sea's disc as it draws an ocean's", async () => {
+    await setup({ continent: 'oceans', includeSeas: true });
+    for (const id of ['mediterranean-sea', 'baltic-sea']) {
+      expect(accessor('polygonAltitude')(datum(id)), id).toBe(ALTITUDE.zone);
+      expect(accessor('polygonCapColor')(datum(id)), id).toBe(ZONE_COLOR);
+      expect(accessor('polygonStrokeColor')(datum(id)), id).toBe(ZONE_EDGE_COLOR);
+    }
+  });
+
+  it('waits for the seas as well', async () => {
+    const onReady = vi.fn();
+    await setup({ continent: 'oceans', includeSeas: true, onReady });
+    globeReady();
+    buildShapes([...world.countries, ...world.oceans]);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(onReady).not.toHaveBeenCalled();
+    buildShapes([...world.countries, ...world.oceans, ...world.seas]);
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+  });
+
+  // No land lies on a sea's disc (seas.test.ts); the land over an ocean's
+  // disc is tested above, with Hawaii.
+  it('picks a sea under a tap, and nothing on land', async () => {
+    const { onPick } = await setup({ continent: 'oceans', includeSeas: true });
+    for (const [lng, lat] of [anchor('mediterranean-sea'), [14, 37.5], anchor('arabian-sea')] as const) {
+      const p = toScreen(lng, lat); // [14, 37.5] is Sicily, outside every ring's reach here
+      tap(p.x, p.y);
+    }
+    expect(onPick.mock.calls).toEqual([['mediterranean-sea'], ['arabian-sea']]);
+  });
+
+  it('rings the seas too small to tap at the whole-globe view, as it rings tiny countries', async () => {
+    await setup({ continent: 'oceans', includeSeas: true });
+    expect(ringIds()).toContain('baltic-sea');
+    expect(ringIds()).toContain('persian-gulf');
+    expect(ringIds()).not.toContain('mediterranean-sea');
+    expect(ringIds().some((id) => (OCEAN_IDS as readonly string[]).includes(id))).toBe(false);
   });
 });
 

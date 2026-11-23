@@ -3,6 +3,7 @@
 import { geoArea } from 'd3-geo';
 import raw from '../data/world.json?raw';
 import { OCEAN_IDS } from '../domain/oceans';
+import { SEA_IDS } from '../domain/seas';
 import {
   AREAS,
   CONTINENTS,
@@ -107,7 +108,7 @@ describe('data decisions', () => {
  */
 describe('the quiz pool', () => {
   const ids = (continent: Parameters<typeof countriesOf>[1], skipTiny: boolean) =>
-    quizPool(world, continent, { skipTiny }).map((c) => c.id);
+    quizPool(world, continent, { skipTiny, includeSeas: false }).map((c) => c.id);
 
   it('is every place of the continent, in data order, while the switch is off', () => {
     for (const continent of CONTINENTS) {
@@ -118,7 +119,7 @@ describe('the quiz pool', () => {
   it('leaves out the places under 1,000 km² when the switch is on', () => {
     expect(TINY_BELOW_KM2).toBe(1_000);
     for (const continent of CONTINENTS) {
-      const pool = quizPool(world, continent, { skipTiny: true });
+      const pool = quizPool(world, continent, { skipTiny: true, includeSeas: false });
       expect(pool.every((c) => c.properties.areaKm2 >= 1_000), continent).toBe(true);
       const left = countriesOf(world, continent).filter((c) => !pool.includes(c));
       expect(left.every((c) => c.properties.areaKm2 < 1_000), continent).toBe(true);
@@ -158,7 +159,7 @@ describe('the oceans in the world', () => {
   it('finds an ocean by id, as it finds a country', () => {
     expect(world.byId.get('indian')?.properties.names.de).toBe('Indischer Ozean');
     expect(world.byId.get('CHE')?.properties.names.fr).toBe('Suisse');
-    expect(world.byId.size).toBe(242 + 5);
+    expect(world.byId.size).toBe(242 + 5 + 24);
   });
 
   it('offers the oceans after the continents', () => {
@@ -167,14 +168,18 @@ describe('the oceans in the world', () => {
 
   it('asks the five oceans in an oceans round, tiny switch or not', () => {
     for (const skipTiny of [false, true]) {
-      expect(quizPool(world, 'oceans', { skipTiny }).map((o) => o.id)).toEqual([...OCEAN_IDS]);
+      expect(quizPool(world, 'oceans', { skipTiny, includeSeas: false }).map((o) => o.id)).toEqual([
+        ...OCEAN_IDS,
+      ]);
     }
   });
 
-  it('never asks an ocean on a continent', () => {
+  it('never asks an ocean or a sea on a continent, seas switch or not', () => {
     for (const continent of CONTINENTS) {
-      const pool = quizPool(world, continent, { skipTiny: false });
-      expect(pool.some((c) => c.properties.continent === 'oceans'), continent).toBe(false);
+      for (const includeSeas of [false, true]) {
+        const pool = quizPool(world, continent, { skipTiny: false, includeSeas });
+        expect(pool.some((c) => c.properties.continent === 'oceans'), continent).toBe(false);
+      }
     }
   });
 
@@ -183,5 +188,27 @@ describe('the oceans in the world', () => {
     const first = topology.objects.countries.geometries[0];
     first.properties = { ...first.properties!, continent: 'oceans' };
     expect(() => parseWorld(topology)).toThrow(/no known continent/);
+  });
+});
+
+/** The seas (docs/plan.md, Phase 8): a switch that adds them to the oceans. */
+describe('the seas in the world', () => {
+  it('holds the 24 seas apart from the land and the oceans', () => {
+    expect(world.seas.map((s) => s.id)).toEqual([...SEA_IDS]);
+    expect(world.seas.every((s) => s.properties.kind === 'Sea')).toBe(true);
+  });
+
+  it('finds a sea by id, as it finds a country', () => {
+    expect(world.byId.get('north-sea')?.properties.names.de).toBe('Nordsee');
+    expect(world.byId.get('mediterranean-sea')?.properties.names.fr).toBe('Mer Méditerranée');
+  });
+
+  it('asks the oceans, then the seas, with the switch on, tiny switch or not', () => {
+    for (const skipTiny of [false, true]) {
+      expect(quizPool(world, 'oceans', { skipTiny, includeSeas: true }).map((p) => p.id)).toEqual([
+        ...OCEAN_IDS,
+        ...SEA_IDS,
+      ]);
+    }
   });
 });

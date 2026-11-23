@@ -101,7 +101,8 @@ export const discRing = (centre: LngLat, radiusDeg: number): [number, number][] 
   return ring;
 };
 
-const capKm2 = (radiusDeg: number): number => HALF_SPHERE_KM2 * (1 - Math.cos(radiusDeg * RAD));
+/** The area of a spherical cap of this radius, in km². */
+export const capKm2 = (radiusDeg: number): number => HALF_SPHERE_KM2 * (1 - Math.cos(radiusDeg * RAD));
 
 const namesOf = (id: OceanId): Record<Language, string> =>
   Object.fromEntries(LANGUAGES.map((lang) => [lang, translate(lang, `ocean.${id}`)])) as Record<

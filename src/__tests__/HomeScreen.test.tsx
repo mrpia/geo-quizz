@@ -10,6 +10,7 @@ const settings: Settings = {
   continent: 'africa',
   timeLimitOn: true,
   skipTiny: false,
+  includeSeas: false,
 };
 
 const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = settings.language) => {
@@ -28,11 +29,60 @@ const setup = (props: Partial<Parameters<typeof HomeScreen>[0]> = {}, lang = set
 describe('HomeScreen', () => {
   it('offers the six continents and the oceans as large buttons, the saved one chosen', () => {
     setup({ settings: { ...settings, language: 'de' } }, 'de');
-    const group = screen.getByRole('radiogroup', { name: 'Wo möchtest du spielen?' });
-    const names = within(group).getAllByRole('radio').map((b) => b.textContent);
-    expect(names).toEqual(['Europa', 'Afrika', 'Asien', 'Nord- und Mittelamerika', 'Südamerika', 'Ozeanien', 'Ozeane']);
-    expect(within(group).getByRole('radio', { name: 'Afrika' })).toHaveAttribute('aria-checked', 'true');
-    expect(within(group).getByRole('radio', { name: 'Europa' })).toHaveAttribute('aria-checked', 'false');
+    // The tiles of both groups; the language toggle has radios of its own.
+    const names = screen.getAllByTestId(/^continent-/).map((b) => b.textContent);
+    expect(names).toEqual([
+      'Europa',
+      'Afrika',
+      'Asien',
+      'Nord- und Mittelamerika',
+      'Südamerika',
+      'Ozeanien',
+      'Ozeane und Meere',
+    ]);
+    expect(screen.getByRole('radio', { name: 'Afrika' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Europa' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('radio', { name: 'Ozeane und Meere' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  // docs/plan.md, Phase 8: Oceania and the oceans, side by side, looked
+  // alike; the tiles now sit under "Land" and "Water". Two radio groups, one
+  // choice: a radiogroup may hold only radios, not a group or a heading.
+  it('groups the continents under "Land" and the oceans and seas under "Water"', () => {
+    setup();
+    const land = screen.getByRole('radiogroup', { name: 'Where do you want to play? Land' });
+    const water = screen.getByRole('radiogroup', { name: 'Where do you want to play? Water' });
+    expect(screen.getByRole('heading', { name: 'Land' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Water' })).toBeInTheDocument();
+    expect(within(land).getAllByRole('radio').map((b) => b.dataset.testid)).toEqual([
+      'continent-europe',
+      'continent-africa',
+      'continent-asia',
+      'continent-north-america',
+      'continent-south-america',
+      'continent-oceania',
+    ]);
+    expect(within(water).getAllByRole('radio').map((b) => b.textContent)).toEqual(['Oceans & seas']);
+  });
+
+  it('names the groups in every language', () => {
+    setup({}, 'fr');
+    expect(screen.getByRole('radiogroup', { name: 'Où veux-tu jouer ? Sur terre' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('radiogroup', { name: "Où veux-tu jouer ? Sur l'eau" })).getByRole('radio'),
+    ).toHaveTextContent('Océans et mers');
+    cleanup();
+    setup({}, 'de');
+    expect(screen.getByRole('radiogroup', { name: 'Wo möchtest du spielen? Land' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Wo möchtest du spielen? Wasser' })).toBeInTheDocument();
+  });
+
+  it('puts no group and no heading inside a radio group', () => {
+    setup();
+    for (const group of screen.getAllByRole('radiogroup')) {
+      expect(within(group).queryAllByRole('group')).toHaveLength(0);
+      expect(within(group).queryAllByRole('heading')).toHaveLength(0);
+    }
   });
 
   it('saves the continent the player chooses', () => {
@@ -49,7 +99,7 @@ describe('HomeScreen', () => {
 
   it('asks where to play in every language', () => {
     setup({}, 'fr');
-    expect(screen.getByRole('radiogroup', { name: 'Où veux-tu jouer ?' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Où veux-tu jouer ?' })).toBeInTheDocument();
   });
 
   it('sums up the round', () => {
@@ -88,6 +138,45 @@ describe('HomeScreen', () => {
     setup({ settings: { ...settings, continent: 'oceans' } });
     expect(screen.queryByRole('switch', { name: 'Tiny countries' })).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Time limit' })).toBeInTheDocument();
+  });
+
+  it('offers the seas switch only while the oceans are chosen, set as saved', () => {
+    setup();
+    expect(screen.queryByTestId('switch-seas')).not.toBeInTheDocument();
+    cleanup();
+    setup({ settings: { ...settings, continent: 'oceans', includeSeas: true } }, 'de');
+    expect(screen.getByRole('switch', { name: 'Meere' })).toHaveAttribute('aria-checked', 'true');
+    cleanup();
+    setup({ settings: { ...settings, continent: 'oceans' } }, 'fr');
+    expect(screen.getByRole('switch', { name: 'Mers' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('saves the seas switch at once, and keeps the time limit beside it', () => {
+    const oceans = { ...settings, continent: 'oceans' as const };
+    const { onChange } = setup({ settings: oceans });
+    expect(screen.getByRole('switch', { name: 'Time limit' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Seas' }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({ ...oceans, includeSeas: true });
+  });
+
+  it('counts oceans and seas when the seas are on, in every language', () => {
+    const waters = { ...settings, continent: 'oceans' as const, includeSeas: true };
+    setup({ settings: waters, roundSize: 10 });
+    expect(screen.getByText('10 oceans and seas · 10 s each')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: { ...waters, timeLimitOn: false }, roundSize: 10 }, 'de');
+    expect(screen.getByText('10 Ozeane und Meere · ohne Zeitlimit')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: waters, roundSize: 1 }, 'fr');
+    expect(screen.getByText('1 océan ou mer · 10 s')).toBeInTheDocument();
+    cleanup();
+    setup({ settings: { ...waters, timeLimitOn: false }, roundSize: 1 }, 'en');
+    expect(screen.getByText('1 ocean or sea · no time limit')).toBeInTheDocument();
+  });
+
+  it('keeps counting countries on a continent, whatever the seas switch says', () => {
+    setup({ settings: { ...settings, includeSeas: true } });
+    expect(screen.getByText('10 countries · 10 s each')).toBeInTheDocument();
   });
 
   it('says "1 country" for a round of one', () => {

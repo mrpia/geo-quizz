@@ -43,6 +43,7 @@ describe('defaultSettings', () => {
       continent: 'europe',
       timeLimitOn: true,
       skipTiny: true,
+      includeSeas: false,
     });
   });
 
@@ -51,6 +52,12 @@ describe('defaultSettings', () => {
     // game harder, and a new player starts with "Time limit" on and "Tiny
     // countries" off (docs/plan.md, Phase 5).
     expect(defaultSettings(['en'])).toMatchObject({ timeLimitOn: true, skipTiny: true });
+  });
+
+  it('starts a new player without the seas', () => {
+    // docs/plan.md, Phase 8: an oceans round stays the five oceans until the
+    // player switches "Seas" on.
+    expect(defaultSettings(['en']).includeSeas).toBe(false);
   });
 });
 
@@ -65,6 +72,7 @@ describe('sanitizeSettings', () => {
       continent: 'oceania',
       timeLimitOn: false,
       skipTiny: false,
+      includeSeas: true,
     };
     expect(sanitizeSettings(valid, browser)).toEqual(valid);
   });
@@ -84,6 +92,7 @@ describe('sanitizeSettings', () => {
       continent: 'europe',
       timeLimitOn: true,
       skipTiny: true,
+      includeSeas: false,
     });
     expect(
       sanitizeSettings(
@@ -117,18 +126,34 @@ describe('sanitizeSettings', () => {
 
   it('reads settings saved by 0.2.0, which had no switches, with the defaults for them', () => {
     const saved = { language: 'de', secondsPerQuestion: 15, countriesPerRound: 5, continent: 'asia' };
-    expect(sanitizeSettings(saved, browser)).toEqual({ ...saved, timeLimitOn: true, skipTiny: true });
+    expect(sanitizeSettings(saved, browser)).toEqual({
+      ...saved,
+      timeLimitOn: true,
+      skipTiny: true,
+      includeSeas: false,
+    });
+  });
+
+  it('reads settings saved by 0.6.0, which had no seas, without them', () => {
+    const saved = { continent: 'oceans', timeLimitOn: false, skipTiny: false };
+    expect(sanitizeSettings(saved, browser)).toMatchObject({ ...saved, includeSeas: false });
   });
 
   it('takes only a boolean for a switch', () => {
-    expect(sanitizeSettings({ timeLimitOn: false, skipTiny: false }, browser)).toMatchObject({
+    expect(
+      sanitizeSettings({ timeLimitOn: false, skipTiny: false, includeSeas: true }, browser),
+    ).toMatchObject({
       timeLimitOn: false,
       skipTiny: false,
+      includeSeas: true,
     });
     for (const value of ['false', 0, 1, 'true', null, {}]) {
-      expect(sanitizeSettings({ timeLimitOn: value, skipTiny: value }, browser)).toMatchObject({
+      expect(
+        sanitizeSettings({ timeLimitOn: value, skipTiny: value, includeSeas: value }, browser),
+      ).toMatchObject({
         timeLimitOn: true,
         skipTiny: true,
+        includeSeas: false,
       });
     }
   });
@@ -177,6 +202,7 @@ describe('settingsStore', () => {
       continent: 'asia',
       timeLimitOn: false,
       skipTiny: false,
+      includeSeas: true,
     } as const;
     saveSettings(settings, browser);
     expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')).toEqual(settings);
@@ -206,6 +232,7 @@ describe('settingsStore', () => {
         continent: 'africa',
         timeLimitOn: false,
         skipTiny: true,
+        includeSeas: false,
       },
       browser,
     );
@@ -216,6 +243,7 @@ describe('settingsStore', () => {
       continent: 'africa',
       timeLimitOn: false,
       skipTiny: true,
+      includeSeas: false,
     });
   });
 

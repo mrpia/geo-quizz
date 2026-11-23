@@ -18,6 +18,8 @@ type Props = {
   countriesPerRound: number;
   /** Leave out the tiny places (`quizPool`): not asked, and grey on the globe. */
   skipTiny: boolean;
+  /** On the oceans, ask the seas too (`quizPool`, plan, Phase 8). */
+  includeSeas: boolean;
   /** Every answer, in order, once the last one has been shown. */
   onFinish: (answers: readonly Answer[]) => void;
   /** The ✕: back home, the round dropped. */
@@ -25,6 +27,17 @@ type Props = {
 };
 
 type Verdict = 'correct' | 'wrong' | 'timeout';
+
+/**
+ * "Find this country:", "Find this ocean:" or "Find this sea:", by the
+ * place asked. Gulfs and bays are asked as seas: the switch that adds them
+ * is "Seas", and their names say what they are (plan, Phase 8).
+ */
+const PROMPTS = {
+  country: 'game.prompt',
+  ocean: 'game.promptOcean',
+  sea: 'game.promptSea',
+} as const;
 
 const verdictOf = (answer: Answer): Verdict =>
   answer.correct ? 'correct' : answer.pickedId === null ? 'timeout' : 'wrong';
@@ -41,12 +54,13 @@ export const GameScreen = ({
   secondsPerQuestion,
   countriesPerRound,
   skipTiny,
+  includeSeas,
   onFinish,
   onQuit,
 }: Props) => {
   const { t, lang } = useI18n();
   const [game, dispatch] = useReducer(gameReducer, null, () => {
-    const ids = quizPool(world, continent, { skipTiny }).map((c) => c.id);
+    const ids = quizPool(world, continent, { skipTiny, includeSeas }).map((c) => c.id);
     return startGame({
       questionIds: drawRound(ids, countriesPerRound),
       continentIds: ids,
@@ -56,10 +70,15 @@ export const GameScreen = ({
   /** `performance.now()` when the current question appeared; null until the globe is drawn. */
   const [askedAt, setAskedAt] = useState<number | null>(null);
 
-  const nameOf = (id: string) => {
+  const placeOf = (id: string) => {
     const country = world.byId.get(id);
     if (!country) throw new Error(`GameScreen: no country ${JSON.stringify(id)}`);
-    return countryName(country, lang);
+    return country;
+  };
+  const nameOf = (id: string) => countryName(placeOf(id), lang);
+  const kindOf = (id: string): keyof typeof PROMPTS => {
+    const { kind } = placeOf(id).properties;
+    return kind === 'Ocean' ? 'ocean' : kind === 'Sea' ? 'sea' : 'country';
   };
 
   const onReady = useCallback(() => setAskedAt((at) => at ?? performance.now()), []);
@@ -159,7 +178,7 @@ export const GameScreen = ({
                   : t('game.wrong', { country: nameOf(shown.pickedId ?? '') })}
             </p>
           ) : (
-            <p className="game__prompt">{t(continent === 'oceans' ? 'game.promptOcean' : 'game.prompt')}</p>
+            <p className="game__prompt">{t(PROMPTS[kindOf(targetId)])}</p>
           )}
           {askedAt !== null && (
             <strong className="game__target" data-testid="game-target" data-id={targetId}>
@@ -184,6 +203,7 @@ export const GameScreen = ({
           world={world}
           continent={continent}
           skipTiny={skipTiny}
+          includeSeas={includeSeas}
           highlight={highlight}
           onPick={onPick}
           onReady={onReady}

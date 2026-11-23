@@ -16,7 +16,7 @@ it('says so when globe.gl cannot be loaded', async () => {
   const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
   render(
     <LanguageProvider lang="en">
-      <GlobeView world={world} continent="europe" skipTiny={false} onPick={vi.fn()} />
+      <GlobeView world={world} continent="europe" skipTiny={false} includeSeas={false} onPick={vi.fn()} />
     </LanguageProvider>,
   );
   expect(await screen.findByRole('alert')).toHaveTextContent('The map could not be loaded.');

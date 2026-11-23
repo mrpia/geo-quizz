@@ -3,6 +3,7 @@ import type { GeometryCollection, Topology } from 'topojson-specification';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import { LANGUAGES, type Language } from '../i18n/language';
 import { oceanPlaces } from './oceans';
+import { seaPlaces } from './seas';
 
 /** The continents a round can be played on, in the order the picker shows them. */
 export const CONTINENTS = [
@@ -26,7 +27,8 @@ export type Area = (typeof AREAS)[number];
 
 /**
  * Where a shape belongs. Antarctica is drawn on the globe but never asked;
- * the oceans' discs are not in the data file (`src/domain/oceans.ts`).
+ * the discs of the oceans and the seas are not in the data file
+ * (`src/domain/oceans.ts`, `src/domain/seas.ts`).
  */
 export type Region = Area | 'antarctica';
 
@@ -58,12 +60,14 @@ export type World = {
   countries: readonly Country[];
   /** The five oceans' discs (`src/domain/oceans.ts`), drawn only in an oceans round. */
   oceans: readonly Country[];
-  /** Both, so every screen finds an ocean's name the way it finds a country's. */
+  /** The seas' discs (`src/domain/seas.ts`), drawn in an oceans round with the seas. */
+  seas: readonly Country[];
+  /** All three, so every screen finds an ocean's or a sea's name the way it finds a country's. */
   byId: ReadonlyMap<string, Country>;
 };
 
 /**
- * Decodes the shipped TopoJSON, and adds the oceans. Throws on anything the
+ * Decodes the shipped TopoJSON, and adds the oceans and the seas. Throws on anything the
  * build would never have written, so a damaged file stops the app at load
  * instead of producing a round that asks for a country with no name.
  */
@@ -87,9 +91,10 @@ export const parseWorld = (topology: WorldTopology): World => {
     return f as Country;
   });
   const oceans = oceanPlaces();
-  const byId = new Map([...countries, ...oceans].map((c) => [c.id, c]));
-  if (byId.size !== countries.length + oceans.length) throw new Error('world data: duplicate ids');
-  return { countries, oceans, byId };
+  const seas = seaPlaces();
+  const byId = new Map([...countries, ...oceans, ...seas].map((c) => [c.id, c]));
+  if (byId.size !== countries.length + oceans.length + seas.length) throw new Error('world data: duplicate ids');
+  return { countries, oceans, seas, byId };
 };
 
 export const countriesOf = (world: World, continent: Continent): Country[] =>
@@ -105,6 +110,8 @@ export const TINY_BELOW_KM2 = 1_000;
 export type PoolOptions = {
   /** Leave out the places under `TINY_BELOW_KM2`. */
   skipTiny: boolean;
+  /** Ask the seas too, in a round on the oceans (plan, Phase 8). */
+  includeSeas: boolean;
 };
 
 /**
@@ -113,10 +120,13 @@ export type PoolOptions = {
  * outside the continent. Everything that needs the round's places calls
  * this, so the draw, the globe and Home's count cannot disagree.
  *
- * On the oceans it is the five oceans, whatever `skipTiny` says: the
- * smallest disc is over a million km².
+ * On the oceans it is the five oceans, and the seas after them with
+ * `includeSeas`, whatever `skipTiny` says: a small sea's disc is
+ * small on screen, but not a tiny place (it gets a tap ring, like any place
+ * too small to tap at the current zoom). On a continent `includeSeas`
+ * changes nothing.
  */
-export const quizPool = (world: World, continent: Area, { skipTiny }: PoolOptions): Country[] =>
+export const quizPool = (world: World, continent: Area, { skipTiny, includeSeas }: PoolOptions): Country[] =>
   continent === 'oceans'
-    ? [...world.oceans]
+    ? [...world.oceans, ...(includeSeas ? world.seas : [])]
     : countriesOf(world, continent).filter((c) => !skipTiny || c.properties.areaKm2 >= TINY_BELOW_KM2);

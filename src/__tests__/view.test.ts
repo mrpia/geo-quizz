@@ -74,7 +74,8 @@ describe('continent views', () => {
     'shows every %s country at the start, except the listed remote islands',
     (continent) => {
       const view = CONTINENT_VIEWS[continent];
-      const hidden = quizPool(world, continent, { skipTiny: false })
+      // Every place a round there can ask: the tiny ones and the seas too.
+      const hidden = quizPool(world, continent, { skipTiny: false, includeSeas: true })
         .filter((c) => !isWithinHorizon(view, c.properties.anchor))
         .map((c) => c.id)
         .sort();
@@ -85,7 +86,9 @@ describe('continent views', () => {
   it('shows the whole globe for the oceans, Africa in the middle', () => {
     expect(CONTINENT_VIEWS.oceans).toEqual({ lat: 0, lng: 20, altitude: 2.2 });
     // No view shows all five: the Pacific and the Arctic are a turn away.
-    expect(BEYOND_HORIZON.oceans).toEqual(['pacific', 'arctic']);
+    expect(BEYOND_HORIZON.oceans.slice(0, 2)).toEqual(['pacific', 'arctic']);
+    // With the seas, 9 of the 24 face the camera at the start.
+    expect(BEYOND_HORIZON.oceans.slice(2)).toHaveLength(15);
   });
 });
 

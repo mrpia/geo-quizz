@@ -10,8 +10,9 @@ import { parseWorld, quizPool, type Area, type WorldTopology } from '../src/doma
  * countries fixed before the page loads, so a spec knows which country it
  * will be asked and can pick one whose anchor it can click. Anchors to
  * avoid: behind the horizon at the continent's view (ATF, HMD, PCN; the
- * Pacific's and the Arctic's at the oceans' view), off the canvas, or within
- * a ring's bullseye (src/domain/pick.ts).
+ * Pacific's, the Arctic's and 15 of the seas at the oceans' view,
+ * `BEYOND_HORIZON`), off the canvas, or within a ring's bullseye
+ * (src/domain/pick.ts).
  */
 
 const SETTINGS_KEY = 'geoquizz:settings';
@@ -42,9 +43,10 @@ const draws = new WeakMap<Page, number[]>();
 /**
  * What a seeded page has unless the spec says otherwise: English, and every
  * place asked. A new player starts without the tiny countries, but several
- * specs click on Malta, Vatican City or Heard Island.
+ * specs click on Malta, Vatican City or Heard Island. The seas stay off, as
+ * for a new player, so an oceans round is the five oceans.
  */
-const SEEDED = { language: 'en', skipTiny: false } as const;
+const SEEDED = { language: 'en', skipTiny: false, includeSeas: false } as const;
 
 /** Starts the page with these settings saved, over `SEEDED`. */
 export const seedSettings = async (page: Page, settings: Partial<Settings>) => {
@@ -69,7 +71,10 @@ export const seedRound = async (
 ) => {
   // The pool from the settings the page is given, so the draw and the game agree.
   const seeded = { ...SEEDED, ...settings, countriesPerRound: ids.length };
-  const pool = quizPool(world, seeded.continent, { skipTiny: seeded.skipTiny }).map((c) => c.id);
+  const pool = quizPool(world, seeded.continent, {
+    skipTiny: seeded.skipTiny,
+    includeSeas: seeded.includeSeas,
+  }).map((c) => c.id);
   draws.set(page, randomsFor(pool, ids));
   await seedSettings(page, seeded);
   await page.addInitScript(() => {

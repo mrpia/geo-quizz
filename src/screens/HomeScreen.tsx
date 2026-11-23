@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { LanguageToggle } from '../components/LanguageToggle';
 import type { Settings } from '../domain/settings';
-import { AREAS } from '../domain/world';
+import { CONTINENTS, type Area } from '../domain/world';
 import { continentName } from '../i18n';
 import { useI18n } from '../i18n/I18nContext';
 import './screens.css';
@@ -12,7 +12,7 @@ type Props = {
   /**
    * How many countries the round will have: the setting, or fewer when the
    * round has fewer places (South America has 14; Oceania without the tiny
-   * countries has 9; the oceans are five).
+   * countries has 9; the oceans are five, 29 with the seas).
    */
   roundSize: number;
   /** A changed continent, switch or language, to save at once. */
@@ -62,25 +62,44 @@ export const HomeScreen = ({
 }: Props) => {
   const { t, lang } = useI18n();
   const titleId = useId();
+  const landId = useId();
+  const waterId = useId();
   const seconds = settings.secondsPerQuestion;
 
   const oceans = settings.continent === 'oceans';
+  // What the round asks, as the summary counts it: countries, oceans, or
+  // oceans and seas (plan, Phase 8).
+  const asked = !oceans ? 'countries' : settings.includeSeas ? 'waters' : 'oceans';
   const one = roundSize === 1;
   const summary = settings.timeLimitOn
-    ? oceans
-      ? one
-        ? t('home.summaryOneOcean', { seconds })
-        : t('home.summaryOceans', { count: roundSize, seconds })
-      : one
-        ? t('home.summaryOne', { seconds })
-        : t('home.summary', { count: roundSize, seconds })
-    : oceans
-      ? one
-        ? t('home.summaryOneOceanUntimed')
-        : t('home.summaryOceansUntimed', { count: roundSize })
-      : one
-        ? t('home.summaryOneUntimed')
-        : t('home.summaryUntimed', { count: roundSize });
+    ? {
+        countries: one ? t('home.summaryOne', { seconds }) : t('home.summary', { count: roundSize, seconds }),
+        oceans: one
+          ? t('home.summaryOneOcean', { seconds })
+          : t('home.summaryOceans', { count: roundSize, seconds }),
+        waters: one
+          ? t('home.summaryOneWater', { seconds })
+          : t('home.summaryWaters', { count: roundSize, seconds }),
+      }[asked]
+    : {
+        countries: one ? t('home.summaryOneUntimed') : t('home.summaryUntimed', { count: roundSize }),
+        oceans: one ? t('home.summaryOneOceanUntimed') : t('home.summaryOceansUntimed', { count: roundSize }),
+        waters: one ? t('home.summaryOneWaterUntimed') : t('home.summaryWatersUntimed', { count: roundSize }),
+      }[asked];
+
+  const tile = (area: Area) => (
+    <button
+      key={area}
+      type="button"
+      role="radio"
+      aria-checked={area === settings.continent}
+      className="home__continent"
+      data-testid={`continent-${area}`}
+      onClick={() => onChange({ ...settings, continent: area })}
+    >
+      {continentName(area, lang)}
+    </button>
+  );
 
   return (
     <div className="screen home">
@@ -112,20 +131,27 @@ export const HomeScreen = ({
         <h2 id={titleId} className="screen__panel-title">
           {t('home.continentTitle')}
         </h2>
-        <div className="home__continents" role="radiogroup" aria-labelledby={titleId}>
-          {AREAS.map((continent) => (
-            <button
-              key={continent}
-              type="button"
-              role="radio"
-              aria-checked={continent === settings.continent}
-              className="home__continent"
-              data-testid={`continent-${continent}`}
-              onClick={() => onChange({ ...settings, continent })}
-            >
-              {continentName(continent, lang)}
-            </button>
-          ))}
+        {/* One choice in two groups, so that Oceania and the oceans no
+            longer sit side by side looking alike (plan, Phase 8). Two radio
+            groups, each named by the question and its title: a radiogroup
+            may hold only radios. */}
+        <div className="home__areas">
+          <div className="home__group">
+            <h3 id={landId} className="home__group-title">
+              {t('home.landTitle')}
+            </h3>
+            <div className="home__continents" role="radiogroup" aria-labelledby={`${titleId} ${landId}`}>
+              {CONTINENTS.map(tile)}
+            </div>
+          </div>
+          <div className="home__group">
+            <h3 id={waterId} className="home__group-title">
+              {t('home.waterTitle')}
+            </h3>
+            <div className="home__continents" role="radiogroup" aria-labelledby={`${titleId} ${waterId}`}>
+              {tile('oceans')}
+            </div>
+          </div>
         </div>
       </section>
       <section className="screen__panel home__switches">
@@ -137,8 +163,17 @@ export const HomeScreen = ({
         />
         {/* On asks the tiny countries: every switch that is on makes the game
             harder. The oceans have no tiny places, so it is hidden for them
-            (plan, Phase 7); the setting keeps its value for the continents. */}
-        {!oceans && (
+            (plan, Phase 7); the setting keeps its value for the continents.
+            The seas switch takes its place there (plan, Phase 8), and is
+            hidden on a continent in the same way. */}
+        {oceans ? (
+          <Switch
+            label={t('home.seas')}
+            on={settings.includeSeas}
+            testId="switch-seas"
+            onToggle={() => onChange({ ...settings, includeSeas: !settings.includeSeas })}
+          />
+        ) : (
           <Switch
             label={t('home.tinyCountries')}
             on={!settings.skipTiny}

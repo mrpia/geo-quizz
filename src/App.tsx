@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { loadWorld } from './data/loadWorld';
 import type { Answer } from './domain/game';
 import { OCEAN_IDS } from './domain/oceans';
+import { SEA_IDS } from './domain/seas';
 import type { Settings } from './domain/settings';
 import { quizPool, type World } from './domain/world';
 import { LanguageProvider, useI18n } from './i18n/I18nContext';
@@ -44,12 +45,14 @@ export const App = () => {
     setScreen('game');
   };
   // A continent's places are known once the map has loaded; the oceans are
-  // always five, so Home never shows "10 oceans" while the map loads.
+  // always five, and 29 with the seas, so Home never shows "10 oceans" while
+  // the map loads.
+  const pool = { skipTiny: settings.skipTiny, includeSeas: settings.includeSeas };
   const poolSize =
     settings.continent === 'oceans'
-      ? OCEAN_IDS.length
+      ? OCEAN_IDS.length + (settings.includeSeas ? SEA_IDS.length : 0)
       : world
-        ? quizPool(world, settings.continent, { skipTiny: settings.skipTiny }).length
+        ? quizPool(world, settings.continent, pool).length
         : null;
   const roundSize = poolSize === null ? settings.countriesPerRound : Math.min(settings.countriesPerRound, poolSize);
 
@@ -76,6 +79,7 @@ export const App = () => {
               secondsPerQuestion={settings.timeLimitOn ? settings.secondsPerQuestion : null}
               countriesPerRound={settings.countriesPerRound}
               skipTiny={settings.skipTiny}
+              includeSeas={settings.includeSeas}
               onFinish={(done) => {
                 setAnswers(done);
                 setScreen('results');
@@ -91,6 +95,7 @@ export const App = () => {
               world={world}
               continent={settings.continent}
               skipTiny={settings.skipTiny}
+              includeSeas={settings.includeSeas}
               onHome={home}
             />
           ) : (
