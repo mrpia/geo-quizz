@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-23
+
+### Added
+
+- **Seas**, a switch under the oceans tile, like "Tiny countries" under a
+  continent: on, a round asks 24 seas as well as the five oceans. They are
+  Natural Earth's world-map seas, gulfs and bays (the Caspian among them),
+  plus the North Sea and the Baltic. Each is a faint disc, like the oceans',
+  in the part of the sea farthest from its shores; the small ones get a tap
+  ring at the whole-globe view, as tiny countries do. The game says "Find
+  this sea:". Off for a new player and after the update. Explore follows the
+  switch.
+- `pnpm data:seas` prints where each sea's disc goes, from Natural Earth's
+  marine areas (`tools/sea-zones.mjs`).
+
+### Changed
+
+- Home groups its tiles: the six continents under "Land", the oceans tile
+  under "Water", with a thin line between them, so that Oceania and the
+  oceans no longer sit side by side looking alike. Each group is a radio
+  group of its own, named by the question and its title.
+- The oceans tile reads "Oceans & seas".
+- The North America tile reads "North & Central America, Caribbean", which
+  is what Natural Earth's North America holds.
+- Settings say "Seconds per question" and "Questions per round", since they
+  also set the oceans round. The German About screen and its button read
+  "Über die App".
+
 ## [0.6.0] - 2026-11-23
 
 ### Added
