@@ -41,6 +41,7 @@ Settled with the owner on 2026-11-21. Don't reopen them without asking.
 - [x] **Phase 4 — Deploy to geo-quizz.mrpia.ch** (0.2.0)
 - [x] **Phase 5 — Two switches on Home: time limit, no tiny countries** (0.3.0)
 - [x] **Phase 6 — Explore mode** (0.4.0, 0.4.1)
+- [ ] **Phase 7 — Oceans**
 
 ### Phase 0 — Foundation (done)
 
@@ -606,7 +607,117 @@ Done when: Explore opens from Home on the chosen continent with the switch
 honoured, a tap names the place in the app's language, nothing is timed or
 scored, 🏠 goes back, and both suites pass in CI.
 
+### Phase 7 — Oceans
+
+The owner's idea of 2026-11-23: learn the oceans, and later the seas,
+without drawing borders in the water. Each ocean is one or more faint discs
+near its middle, sized by the ocean's area, the way a globe prints an
+ocean's name in big letters across it. The child taps the disc.
+
+Why not borders, from Natural Earth's marine polygons (1:50m, v5.1.2,
+measured on 2026-11-23 with d3-geo): smaller seas are cut out of larger
+ones, so the Mediterranean polygon lacks the Adriatic, Ionian, Tyrrhenian,
+Aegean and Balearic seas, and a tap in the open North Atlantic at 30°N 60°W
+lands in the Sargasso Sea. The Southern Ocean polygon is broken: d3 gives it
+1.4 million km², it contains about 12 million km² of test points, and
+5.3 million of those are also inside the Indian Ocean. Sea limits are
+conventions in any case, and a child would read drawn ones as facts.
+
+Decided with the owner on 2026-11-23:
+
+- **Zones, not borders.** An ocean is one or more discs; nothing else in
+  the water is drawn.
+- **The discs are visible**, faint, before the tap. A tap on a disc answers;
+  a tap in open water outside every disc, or on land, does nothing, as a tap
+  outside the continent does today. Rejected: hidden zones, which would mark
+  a right answer far from an ocean's middle as a miss.
+- **Five oceans**: Pacific, Atlantic, Indian, Southern and Arctic.
+- **An "Oceans" tile next to the six continents** on Home, played on the
+  whole globe. The "Tiny countries" switch is hidden while it is chosen.
+  Rejected: a Countries / Oceans choice above the continent picker.
+- **Oceans first.** The seas come later, as a switch that makes the game
+  harder (BACKLOG, "Seas").
+
+Proposed here, to be checked on the tablet:
+
+- **Sizes.** A disc covers 20% of the area of its ocean, or of its half of
+  the ocean, from NOAA's table: Eakins, B.W. and G.F. Sharman, *Volumes of
+  the World's Oceans from ETOPO1*, NOAA National Geophysical Data Center,
+  2010 ([PDF](https://www.ncei.noaa.gov/sites/default/files/2023-01/World%20Ocean%20Volumes.pdf)).
+  It counts the Southern Ocean as everything south of 60°S. The radii run
+  from 6.1° (each of the Southern Ocean's three discs) to 21.0° (the South
+  Pacific).
+- **Several discs where a globe prints the name more than once.** The
+  Atlantic and the Pacific each get a north and a south disc, NOAA's own
+  halves, each sized by its half: one disc at the Atlantic's middle would sit
+  where it is narrowest, between Brazil and West Africa. The Southern Ocean
+  gets three equal discs around Antarctica; as a ring, its middle is the
+  South Pole, on land. The Arctic's disc is centred on the North Pole.
+
+  | Ocean | Part | NOAA area (km²) | Centre (lng, lat) | Radius |
+  |---|---|---|---|---|
+  | Pacific | North | 77,010,000 | −160, 28 | 20.0° |
+  | Pacific | South | 84,750,000 | −125, −28 | 21.0° |
+  | Atlantic | North | 41,490,000 | −40, 32 | 14.7° |
+  | Atlantic | South | 40,270,000 | −17, −24 | 14.4° |
+  | Indian | | 70,560,000 | 80, −20 | 19.1° |
+  | Southern | 3 × ⅓ | 21,960,000 | 25, −61 · 135, −60 · −110, −63 | 6.1° |
+  | Arctic | | 15,558,000 | 0, 90 | 9.0° |
+
+  Checked against `world.json`: every centre is in water, the closest two
+  discs (South Pacific, Southern off West Antarctica) are 9.2° apart, and
+  land covers at most 0.1% of a disc, except the Arctic's 5.9% (the tips of
+  Greenland, Ellesmere Island and Svalbard).
+- **Look.** Light blue and translucent, with a lighter edge, drawn just
+  below the land so that coasts and islands cover them. All land is grey,
+  as land outside the continent is in a round. Hover, answer and wrong pick
+  as for countries: amber, green, red.
+- **Names** from Natural Earth's marine layer, first letter capitalised as
+  for the countries: Pacific Ocean, Océan Pacifique, Pazifischer Ozean, and
+  so on. They go in the dictionaries (`ocean.*`), since they are not in the
+  data file. The owner may want the school book's names instead
+  (Nordpolarmeer rather than Arktischer Ozean, for instance).
+- **Strings.** The tile: "Oceans", "Océans", "Ozeane". The panel title
+  "Pick a continent" no longer fits the last tile: "Where do you want to
+  play?", "Où veux-tu jouer ?", "Wo möchtest du spielen?". The question
+  "Find this ocean:", Explore's "Tap an ocean to see its name", and the
+  summary "5 oceans · 10 s each".
+- **A round asks each ocean once**: five questions, since `drawRound` caps
+  a round at its pool. The last can be answered by elimination; accepted
+  for a first level, the seas switch adds the challenge.
+- **The answer's ✅, and the camera's flight to an answer out of frame, use
+  the first disc**: the North Pacific and North Atlantic, and the Southern
+  Ocean's disc south of Africa.
+
+1. `src/domain/oceans.ts`: the table above, and the discs as GeoJSON, by
+   its own spherical formula so that d3-geo stays out of the first bundle.
+   Each ocean becomes a place like a country (`continent: 'oceans'`, kind
+   "Ocean", `areaKm2` the discs' area, `anchor` the first centre).
+   Tests, with d3-geo: each disc has its target area and contains its
+   centre; every centre is in water; no two discs touch; land covers less
+   than 10% of each disc.
+2. `src/domain/world.ts`: Home's choice becomes `Area`, a continent or
+   `'oceans'`. `World` gets `oceans`, and `byId` holds them, so every screen
+   finds an ocean's name the way it finds a country's. `quizPool(world,
+   'oceans')` is the five oceans; the tiny-countries setting does not apply.
+3. Settings accept `'oceans'`, stored in `continent`: the field keeps its
+   name, as `skipTiny` did in Phase 5.
+4. `GlobeView`: in an oceans round it adds the discs under the land, greys
+   all land, picks only discs (land under the finger wins), and starts from
+   a whole-globe view, which the recentre button returns to. Rounds on a
+   continent are unchanged.
+5. Screens: the tile, the hidden switch, the summary, the question and
+   Explore's prompt, in FR (tu), DE (du, Swiss spelling) and EN.
+6. e2e, for real clicks: in an oceans round a click on a disc answers and a
+   click on land does nothing; in Explore a click on a disc names its ocean.
+7. `docs/data.md` gets an "Ocean zones" section; BACKLOG gets "Seas";
+   `CHANGELOG.md`. Whether this ships as 0.6.0 is the owner's call.
+
+Done when: an oceans round plays from Home to the results, Explore names
+the oceans, continent rounds look and play as before, and both suites pass
+in CI.
+
 ## Later (not planned yet)
 
-Ideas beyond Phase 6 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
+Ideas beyond Phase 7 live in [BACKLOG.md](../BACKLOG.md). An idea moves from
 there into a phase here once the owner decides to build it.
