@@ -18,6 +18,9 @@ from it unless the owner has moved the idea into a phase.
   server already there, so stop a stale preview before trusting a run)
 - `pnpm data`: regenerate `src/data/world.json` from the pinned Natural Earth
   download (cached in `.cache/`, checked by SHA-256)
+- `pnpm data:seas`: print where each sea's disc goes, from Natural Earth's
+  marine areas (pinned the same way); the numbers live in
+  `src/domain/seas.ts`, which the script never writes
 - `pnpm ship`: build and deploy to Firebase Hosting (site `geo-quizz-mrpia`,
   project `modern-ally-102412`, served at https://geo-quizz.mrpia.ch). It
   publishes to the live site, so only with the owner's go-ahead. `vite
